@@ -192,6 +192,7 @@ The margin stops it flicking between two feeds while the flash recharges. In the
 ## R0010 notes
 - `begin()` builds the Watch with `Rules.fresh()` (watched = START_FEED) and runs one zero-dt `Rules.step` so the opening feeds are awake on frame 1 (feed 2 shows its eyes in the start shot).
 - QA flag `--nwqa` (after `--`): an idle player who switches to CAM 2 at t 8, for shots of the full-size creeper: `--game=nightwatch --nwqa --shotfile=<png> --shotframes=1250` (no `--autoplay`).
+- QA flag `--nwqa-hold` (after `--`, default off): unwatched awake feeds are capped at d 0.92 each tick so they never breach; shows thumbnail creeper eyes at high danger: `--game=nightwatch --nwqa-hold --shotfile=<png> --shotframes=1250` (CAM 3 unwatched, d about 0.9). Combine with `--nwqa` to watch CAM 2 instead.
 
 ## R0013 notes (T-0035: danger in view)
 - Unwatched awake feed with `d >= CUE_OUTLINE_D 0.3` (about 4 s in for the first creeper): its thumbnail gets a pulsing BAD 4 px outline (3 Hz, just outside the thumb border).

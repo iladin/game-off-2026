@@ -50,6 +50,9 @@ var loop_restart_t: float = 0.0
 var lamp_blink_t: float = 0.0
 var qa_watch2: bool = "--nwqa" in OS.get_cmdline_user_args()  # QA shots: idle player who looks at CAM 2 at t 8
 
+var qa_hold: bool = "--nwqa-hold" in OS.get_cmdline_user_args()  # QA shots: unwatched feeds never breach (d held at QA_HOLD_D)
+const QA_HOLD_D := 0.92
+
 
 func begin() -> void:
 	rng.randomize()
@@ -114,6 +117,10 @@ func _process(dt: float) -> void:
 					_switch(act)
 	if qa_watch2 and t >= 8.0 and watch.watched != 1:
 		_switch(1)
+	if qa_hold:
+		for i in R.FEEDS:
+			if i != watch.watched and watch.awake[i]:
+				watch.d[i] = minf(watch.d[i], QA_HOLD_D)
 	var ev := R.step(watch, dt, r, rng)
 	if _on_events(ev):
 		return
