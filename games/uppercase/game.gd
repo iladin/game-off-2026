@@ -1,119 +1,373 @@
 extends MicroGame
-## TEMPLATE game ("Zone"): a marker shifts back and forth along a bar; press while
-## it's inside the green zone. Hits shrink the zone and speed the marker up.
-## 3 misses = game over; 15 hits = clear. It exists to show the MicroGame contract:
-## begin() / finish(score, won), autoplay bot, Synth, Juice, rules.gd + selftest.
-## Replace the gameplay when you build a real game; keep the structure.
+## Upper Case: capitals fall over their keys; press the Shift on the OTHER side as
+## each crosses the line. Lower case letters pass. Left/Right Shift (or F/J), or tap halves.
 
 const Rules := preload("res://games/uppercase/rules.gd")
+const KD := preload("res://games/uppercase/keys_draw.gd")
 
-# --- Tunables -------------------------------------------------------------------
-const BG := Color("101018")
-const BAR := Color("2a2a3a")
-const ZONE := Color("4ade80")
-const MARKER := Color("f8fafc")
-const DANGER := Color("f43f5e")
-const BAR_RECT := Rect2(160, 330, 960, 60)
-const MAX_MISSES := 3
-const HITS_TO_CLEAR := 15
-const INTRO_TIME := 0.8
+const ACCENT := Color("3DDCFF")
+const GOOD := Color("FFD34D")
+const BAD := Color("FF3B5C")
+const DIM := Color("6B7489")
+const LIVES := 3
+const INTRO_TIME := 0.6
+const FIRST_CAPS := 4
+const LEFT_KEY := Rect2(170, 612, 460, 100)
+const RIGHT_KEY := Rect2(650, 612, 460, 100)
+const KEY_DOWN_TIME := 0.1
+const FADE_IN := 0.15
+const SQUASH := 1.25
+const SQUASH_TIME := 0.12
+const FAIL_TINT_TIME := 0.2
+const BANNER_TIME := 1.2
+const HINT_FLASH_TIME := 0.3
+const STRIP_FLASH_TIME := 0.15
+const LOOP_NOTES: Array = [57, 0, 60, 64, 0, 64, 62, 60, 57, 0, 60, 64, 67, 0, 64, 62]
+const LOOP_VOL := 0.10
+const LOOP_RESTART_DELAY := 0.5
+const TOP_TRANSPOSE := 12
+const SHAKE_SOFT := 4.0
+const SHAKE_HARD := 14.0
+const HITSTOP := 0.06
+const BOT_SPREAD := 24.0
 
-var hits: int = 0
-var misses: int = 0
-var score: int = 0
-var marker_x: float = 0.0
-var direction: float = 1.0
-var zone_center: float = 640.0
+class Tile extends RefCounted:
+	var ch: String = "A"
+	var upper: bool = true
+	var x: float = 0.0
+	var spawn_beat: float = 0.0
+	var travel: float = 4.0
+	var age: float = 0.0
+	var judged: bool = false
+	var fx: int = 0 # 0 none, 1 hit, 2 miss/small (BAD tint), 3 passed lower
+	var fx_t: float = 0.0
+	var bot_off: float = 0.0
+	var y: float = 140.0
+
 var intro: float = 0.0
-var bot_cooldown: float = 0.0
-var font: Font = ThemeDB.fallback_font
+var blip2_done: bool = false
+var t: float = 0.0
+var beat: float = 0.0
+var r: float = 0.0
+var clock: float = 0.0
+var last_spawn_beat: int = -1
+var tiles: Array[Tile] = []
+var last_ch: String = ""
+var spawned: int = 0
+var score: int = 0
+var streak: int = 0
+var lives: int = LIVES
+var key_down_t: Array[float] = [0.0, 0.0]
+var key_bad_t: Array[float] = [0.0, 0.0]
+var hint_flash_t: float = 0.0
+var hint_flash_side: int = 0
+var life_flash_t: float = 0.0
+var strip_flash_t: float = 0.0
+var strip_flash_ch: String = ""
+var score_squash_t: float = 0.0
+var banner_text: String = ""
+var banner_t: float = 0.0
+var last_phase: String = ""
+var loop_wait_beat: int = -1
+var top_music: bool = false
+var columns_x: Array[float] = []
 
 
 func begin() -> void:
-	hits = 0
-	misses = 0
-	score = 0
-	marker_x = BAR_RECT.position.x
-	direction = 1.0
 	intro = INTRO_TIME
-	_place_zone()
-	Synth.loop([60, 0, 67, 0, 64, 0, 67, 72], 128.0)
+	blip2_done = false
+	t = 0.0
+	beat = 0.0
+	clock = 0.0
+	last_spawn_beat = -1
+	tiles.clear()
+	last_ch = ""
+	spawned = 0
+	score = 0
+	streak = 0
+	lives = LIVES
+	key_down_t = [0.0, 0.0]
+	key_bad_t = [0.0, 0.0]
+	hint_flash_t = 0.0
+	life_flash_t = 0.0
+	strip_flash_t = 0.0
+	strip_flash_ch = ""
+	score_squash_t = 0.0
+	banner_text = ""
+	banner_t = 0.0
+	last_phase = ""
+	loop_wait_beat = -1
+	top_music = false
+	if columns_x.is_empty():
+		for i in 26:
+			columns_x.append(Rules.key_center(char(65 + i)).x)
+	Synth.stop_loop()
+	Synth.sfx("blip")
+	r = Rules.ramp_time(0.0, difficulty)
 
 
-func _place_zone() -> void:
-	var w := Rules.zone_width(hits)
-	zone_center = randf_range(BAR_RECT.position.x + w * 0.5, BAR_RECT.end.x - w * 0.5)
+func _start_loop() -> void:
+	var notes: Array = LOOP_NOTES
+	if top_music:
+		notes = []
+		for n in LOOP_NOTES:
+			notes.append(n + TOP_TRANSPOSE if n > 0 else 0)
+	Synth.loop(notes, Rules.BPM, "triangle", LOOP_VOL)
 
 
 func _process(delta: float) -> void:
 	queue_redraw()
 	if is_finished():
 		return
+	clock += delta
+	for i in 2:
+		key_down_t[i] = maxf(0.0, key_down_t[i] - delta)
+		key_bad_t[i] = maxf(0.0, key_bad_t[i] - delta)
+	hint_flash_t = maxf(0.0, hint_flash_t - delta)
+	life_flash_t = maxf(0.0, life_flash_t - delta)
+	strip_flash_t = maxf(0.0, strip_flash_t - delta)
+	score_squash_t = maxf(0.0, score_squash_t - delta)
+	banner_t = maxf(0.0, banner_t - delta)
 	if intro > 0.0:
 		intro -= delta
+		if not blip2_done and intro <= INTRO_TIME - 0.3:
+			blip2_done = true
+			Synth.sfx("blip")
+		if intro > 0.0:
+			return
+		t = 0.0
+		_start_loop()
+	else:
+		t += delta
+	beat = t / Rules.BEAT
+	r = Rules.ramp_time(t, difficulty)
+	var ph := Rules.phase_name(r)
+	if ph != last_phase:
+		last_phase = ph
+		if ph != "":
+			banner_text = ph
+			banner_t = BANNER_TIME
+	if r >= Rules.TOP_AT and not top_music:
+		top_music = true
+		Synth.stop_loop()
+		loop_wait_beat = int(floor(beat)) + 1
+	if loop_wait_beat >= 0 and int(floor(beat)) >= loop_wait_beat:
+		loop_wait_beat = -1
+		_start_loop()
+	_spawn()
+	_move_tiles(delta)
+	if is_finished():
 		return
-	marker_x += direction * Rules.marker_speed(hits) * delta
-	if marker_x > BAR_RECT.end.x or marker_x < BAR_RECT.position.x:
-		direction = -direction
-		marker_x = clampf(marker_x, BAR_RECT.position.x, BAR_RECT.end.x)
 	if autoplay:
-		_bot(delta)
+		_bot()
+	if is_finished():
+		return
+	if t >= Rules.SPAWN_END:
+		var open := false
+		for tl in tiles:
+			if not tl.judged:
+				open = true
+		if not open:
+			finish(Rules.final_score(score, lives), true)
 
 
-func _bot(delta: float) -> void:
-	# A decent but imperfect player: presses when close to the zone centre.
-	bot_cooldown -= delta
-	if bot_cooldown <= 0.0 and absf(marker_x - zone_center) < Rules.zone_width(hits) * randf_range(0.2, 0.7):
-		bot_cooldown = 0.25
-		_press()
+func _spawn() -> void:
+	var b := int(floor(beat))
+	if b <= last_spawn_beat or t >= Rules.SPAWN_END:
+		return
+	last_spawn_beat = b
+	if b % Rules.spawn_every(r) != 0:
+		return
+	var tl := Tile.new()
+	var ch := last_ch
+	while ch == last_ch:
+		ch = char(65 + randi_range(0, 25))
+	last_ch = ch
+	tl.ch = ch
+	tl.x = Rules.key_center(ch).x
+	tl.upper = spawned < FIRST_CAPS or randf() >= Rules.lower_chance(r)
+	tl.spawn_beat = float(b)
+	tl.travel = Rules.travel_beats(r)
+	tl.bot_off = randf_range(-BOT_SPREAD, BOT_SPREAD)
+	spawned += 1
+	tiles.append(tl)
+
+
+func _move_tiles(delta: float) -> void:
+	for i in range(tiles.size() - 1, -1, -1):
+		var tl: Tile = tiles[i]
+		tl.age += delta
+		tl.y = Rules.letter_y(beat - tl.spawn_beat, tl.travel)
+		if tl.fx_t > 0.0:
+			tl.fx_t -= delta
+		if tl.judged:
+			if (tl.fx in [1, 2] and tl.fx_t <= 0.0) or (tl.fx == 3 and tl.y > 494.0) or (tl.fx == 0 and tl.y > 494.0):
+				tiles.remove_at(i)
+			continue
+		if Rules.is_missed(tl.y):
+			tl.judged = true
+			if tl.upper:
+				tl.fx = 2
+				tl.fx_t = FAIL_TINT_TIME
+				_hard_fail(tl, "MISSED", Rules.correct_shift(tl.ch), -1)
+				if is_finished():
+					return
+			else:
+				tl.fx = 3
+				score += Rules.LOWER_PASS_PTS
+				Juice.popup(self, Vector2(tl.x, Rules.LINE_Y - 50.0), "+%d" % Rules.LOWER_PASS_PTS, DIM)
+
+
+func _nearest(only_window: bool, only_upper: bool) -> Tile:
+	var best: Tile = null
+	var bd := 1.0e9
+	for tl in tiles:
+		if tl.judged or (only_upper and not tl.upper):
+			continue
+		var d := absf(tl.y - Rules.LINE_Y)
+		if only_window and Rules.judge(tl.y - Rules.LINE_Y) == Rules.NONE:
+			continue
+		if d < bd:
+			bd = d
+			best = tl
+	return best
+
+
+func _bot() -> void:
+	var tl := _nearest(false, true)
+	if tl != null and tl.y >= Rules.LINE_Y + tl.bot_off and tl.y > Rules.LINE_Y - Rules.GOOD_PX:
+		_press(Rules.correct_shift(tl.ch))
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if autoplay or is_finished() or intro > 0.0:
 		return
-	var key := event.is_action_pressed("ui_accept")
-	var tap: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
-	if key or tap:
-		_press()
-
-
-func _press() -> void:
-	var w := Rules.zone_width(hits)
-	var p := Rules.points(marker_x, zone_center, w)
-	var at := Vector2(marker_x, BAR_RECT.get_center().y)
-	if p > 0:
-		hits += 1
-		score += p
-		Synth.sfx("coin", 1.0 + 0.04 * hits)
-		Juice.burst(self, at, ZONE)
-		Juice.popup(self, at - Vector2(0, 40), "PERFECT +2" if p == 2 else "+1", ZONE)
-		if hits >= HITS_TO_CLEAR:
-			finish(score, true)
+	if event is InputEventKey:
+		var k := event as InputEventKey
+		if not k.pressed or k.echo:
 			return
-		_place_zone()
+		if k.keycode == KEY_SHIFT or k.physical_keycode == KEY_SHIFT:
+			if k.location == KEY_LOCATION_LEFT:
+				_press(Rules.LEFT)
+			elif k.location == KEY_LOCATION_RIGHT:
+				_press(Rules.RIGHT)
+		elif k.keycode == KEY_F:
+			_press(Rules.LEFT)
+		elif k.keycode == KEY_J:
+			_press(Rules.RIGHT)
+	elif event is InputEventMouseButton:
+		var m := event as InputEventMouseButton
+		if m.pressed and m.button_index == MOUSE_BUTTON_LEFT:
+			_press(Rules.side_for_tap_x(m.position.x))
+
+
+func _press(side: int) -> void:
+	Synth.sfx("shift", Rules.shift_pitch(streak))
+	key_down_t[side] = KEY_DOWN_TIME
+	var tl := _nearest(true, false)
+	if tl == null:
+		_soft_fail(null, "", side)
+		return
+	if not tl.upper:
+		tl.judged = true
+		tl.fx = 2
+		tl.fx_t = FAIL_TINT_TIME
+		_soft_fail(tl, "SMALL", side)
+		return
+	if side != Rules.correct_shift(tl.ch):
+		tl.judged = true
+		tl.fx = 2
+		tl.fx_t = FAIL_TINT_TIME
+		_hard_fail(tl, "TYPO", side, side)
+		return
+	var j := Rules.judge(tl.y - Rules.LINE_Y)
+	var pts := Rules.hit_points(j, streak)
+	var pos := Vector2(tl.x, tl.y)
+	tl.judged = true
+	tl.fx = 1
+	tl.fx_t = SQUASH_TIME
+	score += pts
+	score_squash_t = 0.12
+	strip_flash_ch = tl.ch
+	strip_flash_t = STRIP_FLASH_TIME
+	if j == Rules.PERFECT:
+		Synth.sfx("coin", pow(2.0, mini(streak, 12) / 12.0))
+		Juice.burst(self, pos, ACCENT, 14)
+		Juice.popup(self, pos - Vector2(0, 50), "PERFECT", GOOD)
 	else:
-		misses += 1
-		Synth.sfx("miss")
-		Juice.shake(10.0)
-		Juice.flash(Color(DANGER, 0.3))
-		if misses >= MAX_MISSES:
-			finish(score, false)
+		Synth.sfx("coin", 0.84)
+		Juice.burst(self, pos, ACCENT, 8)
+		Juice.popup(self, pos - Vector2(0, 50), "+%d" % pts, GOOD)
+	streak += 1
+	if streak % 10 == 0:
+		Juice.flash(Color(1, 1, 1, 0.15), 0.1)
+
+
+func _soft_fail(tl: Tile, text: String, side: int) -> void:
+	streak = 0
+	Synth.sfx("miss", randf_range(0.92, 1.08))
+	Juice.shake(SHAKE_SOFT)
+	if tl == null:
+		key_bad_t[side] = FAIL_TINT_TIME
+	else:
+		Juice.popup(self, Vector2(tl.x, tl.y - 50.0), text, BAD)
+
+
+func _hard_fail(tl: Tile, text: String, correct: int, pressed: int) -> void:
+	streak = 0
+	var pos := Vector2(tl.x, minf(tl.y, 494.0))
+	if Rules.is_grace(r):
+		hint_flash_t = HINT_FLASH_TIME
+		hint_flash_side = correct
+		Synth.sfx("miss", randf_range(0.92, 1.08))
+		Juice.popup(self, pos - Vector2(0, 50), "OTHER SIDE" if text == "TYPO" else text, DIM)
+		return
+	lives -= 1
+	life_flash_t = 0.4
+	key_bad_t[pressed if pressed >= 0 else correct] = FAIL_TINT_TIME
+	Synth.sfx("boom", randf_range(0.95, 1.05))
+	Synth.stop_loop()
+	loop_wait_beat = int(ceil((t + LOOP_RESTART_DELAY) / Rules.BEAT))
+	Juice.flash(Color(BAD, 0.35), 0.2)
+	Juice.shake(SHAKE_HARD)
+	Juice.hitstop(HITSTOP)
+	Juice.burst(self, pos, BAD)
+	Juice.popup(self, pos - Vector2(0, 50), text, BAD)
+	if lives <= 0:
+		finish(score, false)
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, view_size()), BG)
-	draw_rect(BAR_RECT, BAR)
-	var w := Rules.zone_width(hits)
-	draw_rect(Rect2(zone_center - w * 0.5, BAR_RECT.position.y, w, BAR_RECT.size.y), ZONE.darkened(0.3))
-	draw_rect(Rect2(zone_center - w / 6.0, BAR_RECT.position.y, w / 3.0, BAR_RECT.size.y), ZONE)
-	draw_rect(Rect2(marker_x - 4, BAR_RECT.position.y - 20, 8, BAR_RECT.size.y + 40), MARKER)
-	draw_string(font, Vector2(0, 150), "%d" % score, HORIZONTAL_ALIGNMENT_CENTER, 1280, 72, MARKER)
-	for i in MAX_MISSES: # lives: filled = left, ring = lost (draw shapes; the web font has no symbols)
-		var c := Vector2(640 + (i - 1) * 36, 200)
-		if i >= misses:
-			draw_circle(c, 11, DANGER)
-		else:
-			draw_arc(c, 11, 0, TAU, 24, DANGER, 2.0)
-	draw_string(font, Vector2(0, 520), "Space / tap when the marker is in the green", HORIZONTAL_ALIGNMENT_CENTER, 1280, 28, MARKER.darkened(0.4))
-	if intro > 0.0:
-		draw_string(font, Vector2(0, 460), "READY", HORIZONTAL_ALIGNMENT_CENTER, 1280, 56, ZONE)
+	KD.draw_backdrop(self, columns_x)
+	KD.draw_line_zone(self, beat - floor(beat))
+	var nxt := _nearest(false, false)
+	for tl in tiles:
+		var a := clampf(tl.age / FADE_IN, 0.0, 1.0)
+		var tint := Color(0, 0, 0, 0)
+		var up := tl.upper
+		var sq := 1.0
+		if tl.fx == 1:
+			tint = GOOD
+			sq = lerpf(1.0, SQUASH, 1.0 - clampf(tl.fx_t / SQUASH_TIME, 0.0, 1.0))
+		elif tl.fx == 2:
+			tint = BAD
+		KD.draw_tile(self, Vector2(tl.x, tl.y), tl.ch, up, a, tint, sq)
+	var lit := ""
+	var lit_up := true
+	if nxt != null:
+		lit = nxt.ch
+		lit_up = nxt.upper
+	KD.draw_strip(self, lit, lit_up, strip_flash_ch, strip_flash_t / STRIP_FLASH_TIME * 0.6)
+	var hint_side := -1
+	if Rules.hints_on(r) and nxt != null and nxt.upper:
+		hint_side = Rules.correct_shift(nxt.ch)
+	for s in 2:
+		var rect: Rect2 = LEFT_KEY if s == Rules.LEFT else RIGHT_KEY
+		var flash := false
+		if hint_flash_t > 0.0 and hint_flash_side == s:
+			flash = fmod((HINT_FLASH_TIME - hint_flash_t) / HINT_FLASH_TIME * 2.0, 1.0) < 0.6
+		KD.draw_shift_key(self, rect, s, key_down_t[s] > 0.0, hint_side == s and not flash, key_bad_t[s] > 0.0, flash, clock)
+	var prog := t / Rules.SPAWN_END
+	var ba := clampf(banner_t / 0.3, 0.0, 1.0)
+	var lost := lives if lives < LIVES else -1
+	KD.draw_hud(self, score, lives, LIVES, life_flash_t, lost, prog, banner_text, ba, 1.0 + 0.1 * (score_squash_t / 0.12))
