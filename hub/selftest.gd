@@ -59,5 +59,12 @@ func _init() -> void:
 	assert(G.is_done(h) and not G.completed(h) and h["index"] == 3 and h["lives"] == 0)
 	assert(G.is_done(G.new_state(0)))
 	assert(G.status(G.new_state(8)) == "GAME 1 OF 8   8.0")
+	assert(G.card_word({"sense": "key", "title": "Keys"}) == "KEY" and G.card_word({"title": "Tilt"}) == "TILT")
+	assert(G.card_word({"sense": "  ", "title": "Tilt"}) == "TILT" and G.card_word({}) == "?")
+	var f: Font = ThemeDB.fallback_font
+	for w in ["CARGO", "A", "WWWWWWWWWWWWWWWWWWWWWWWW", "SUPERCALIFRAGILISTICEXPIALIDOCIOUS"]:
+		var fz := G.fit_size(f, w, 96)
+		assert(fz >= G.CARD_MIN_SIZE and fz <= 96)
+		assert(fz == G.CARD_MIN_SIZE or f.get_string_size(w, HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x <= G.CARD_MAX_W)
 	print("SELFTEST OK")
 	quit()

@@ -8,6 +8,7 @@ extends Node
 ##   --autoplay             the game's bot plays; after each round it restarts
 ##   --tour                 attract mode: autoplay every hub game in turn, return to hub between
 ##   --hubdemo=<n>          debug: the hub shows n (0 to 8) placeholder games, every other one cleared; no Save, no registry, launching only plays `select`
+##   --cardword=<text>      debug: force the gauntlet card word (tests the fit-to-1100px shrink)
 ##   --gauntlet             boot straight into the OVERFLOW gauntlet (combine with --autoplay for a bot run)
 ##   --difficulty=<n>       QA, single-game launches only: sets MicroGame.difficulty (0 = normal)
 ##   --rstart=<seconds>     QA, single-game launches only: sets MicroGame.qa_ramp, so the round starts that many
@@ -335,11 +336,14 @@ func _draw_card() -> void:
 	if _card_t < 0.0 or _card_info.is_empty():
 		return
 	var acc: Color = _card_info["accent"]
-	var word := String(_card_info.get("sense", _card_info["title"])).to_upper()
+	var word := GauntletRules.card_word(_card_info)
+	if _args.has("cardword"): # debug: force a long word to check the fit
+		word = String(_args["cardword"]).to_upper()
 	var a := clampf(_card_t / 0.12, 0.0, 1.0)
 	_card.draw_rect(Rect2(0, 0, 1280, 720), Color("0b0e14"))
 	var sc := 1.0 + 0.25 * (1.0 - a)
-	_card.draw_string(_font, Vector2(0, 360), word, HORIZONTAL_ALIGNMENT_CENTER, 1280, int(CARD_WORD_SIZE * sc), Color(acc, a))
+	var fs0 := GauntletRules.fit_size(_font, word, int(CARD_WORD_SIZE * sc))
+	_card.draw_string(_font, Vector2(0, 360), word, HORIZONTAL_ALIGNMENT_CENTER, 1280, fs0, Color(acc, a))
 	# register row: passed slots are 1, this slot flips 0 -> 1
 	var n: int = int(_gauntlet.get("n", games.size())) if not _gauntlet.is_empty() else games.size()
 	var cw := 64.0

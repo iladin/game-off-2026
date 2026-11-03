@@ -74,3 +74,24 @@ static func time_left(s: Dictionary) -> float:
 ## HUD text, words only: "GAME 3 OF 8   5.2" (lives are drawn as squares by Arcade).
 static func status(s: Dictionary) -> String:
 	return "GAME %d OF %d   %.1f" % [mini(int(s["index"]) + 1, int(s["n"])), int(s["n"]), time_left(s)]
+
+
+const CARD_MAX_W := 1100.0 ## widest the interstitial card word may be drawn
+const CARD_MIN_SIZE := 28
+
+
+## Card word for a game.json dict: `sense`, else `title`, else "?" (upper case). G.card_word({"title": "Tilt"}) == "TILT"
+static func card_word(info: Dictionary) -> String:
+	for k in ["sense", "title"]:
+		var w := String(info.get(k, "")).strip_edges()
+		if w != "":
+			return w.to_upper()
+	return "?"
+
+
+## Largest font size <= base whose `word` fits `max_w` px (never below CARD_MIN_SIZE). G.fit_size(font, "CARGO", 96)
+static func fit_size(font: Font, word: String, base: int, max_w: float = CARD_MAX_W) -> int:
+	var sz := base
+	while sz > CARD_MIN_SIZE and font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x > max_w:
+		sz -= 2
+	return maxi(sz, mini(CARD_MIN_SIZE, base))
