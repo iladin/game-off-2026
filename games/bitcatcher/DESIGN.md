@@ -57,7 +57,7 @@ Round time `t` counts from the loop start (end of intro). Ramp time `r = t + (DI
 | `phase_name(r)` banner | `""` | `FASTER` | `ZEROS` | `NO HINTS` | `TOP SPEED` |
 
 - Fall distance `FALL_PX = LAND_Y - SPAWN_Y = 440 - 220 = 220` px; `fall_speed(r) = FALL_PX / fall_time(r)`. Fast drop: `FAST_SPEED = 1300` px/s (a 220 px fall in 0.17 s).
-- At most one bit is in the air. The next spawns `spawn_gap(r)` after a landing, or after the byte pause (`BYTE_PAUSE = 0.5` s) when the landing completed a byte. The first bit of the round spawns at `t = 0.3`.
+- At most one bit is in the air. The next spawns `spawn_gap(r)` after a landing, or after the byte pause (`BYTE_PAUSE = 0.5` s) when the landing completed a byte. The first bit of the round spawns at `t = 0.1` (`FIRST_SPAWN`).
 - Columns: uniform random 0-7, never the same column three times in a row. **The first bit of the round** spawns over a socket at the starting rotation, so doing nothing at all lands it (the game teaches itself).
 - A bit is a 0 with `zero_chance(r)`, never two 0s in a row, and never while `reg == 0` (nothing to lose yet, so the 0 is pointless).
 - Targets: `Rules.make_target(ones_for(r), prev_target, rng)`: exactly that many 1s at random cells, never equal to the previous target. A new byte sets `reg = 0`.
@@ -71,7 +71,7 @@ Screen map (1280 x 720):
 | y | Band |
 |---|---|
 | 0-120 | HUD: score, lives, byte counter (x 170-1090 only) |
-| 128-176 | banner |
+| 128-176 | target row: the byte to build, 8 small cells (lime 1 where set) |
 | 180-470 | the fall: bit centres from `SPAWN_Y = 220` to `LAND_Y = 440` |
 | 480-580 | the register: 8 cells |
 | 600-712 | LEFT, DROP and RIGHT pads |
@@ -82,7 +82,7 @@ Screen map (1280 x 720):
 - **Cells** (100 x 100, top y 480, at `col_x(c) - 50`), drawn from the bits of `reg` and `target` at column c (`Rules.bit_at(x, c)`):
   - plain (target 0): PANEL fill, 2 px TRACE outline, `0` 48 px DIM centred.
   - empty socket (target 1, reg 0): PANEL fill, 4 px ACCENT outline at alpha `0.55 + 0.45 sin(TAU * 2 t)`, `0` 48 px DIM, a 6 px ACCENT bar along the cell bottom.
-  - set (target 1, reg 1): ACCENT fill, `1` 56 px in BG colour, glow (rect at 1.3x alpha 0.25, 1.6x alpha 0.10).
+  - set (target 1, reg 1): ACCENT (lime) fill, `1` 56 px in BG colour, glow (rect at 1.3x alpha 0.25, 1.6x alpha 0.10).
   - just-cleared by a 0: BAD outline 0.2 s.
 - **Shift slide:** the integers rotate at once; only the drawing eases. After ROL every cell at column c came from column c+1, so draw every cell at `x + slide_px` with `slide_px` starting at +112 (ROL) or -112 (ROR) and easing to 0 over `SLIDE_TIME = 0.10` s (ease out cubic); `prog` goes 0 to 1. The wrapped cell (`wrap_col` = 7 after ROL, 0 after ROR) slides in from just outside the frame at alpha `prog`, and a ghost copy of it is drawn at `x + slide_px - 896` (ROL) or `x + slide_px + 896` (ROR), sliding out of the other end at alpha `1 - prog`. No clipping API needed.
 - **Falling bit:** 80 x 80 square centred at `(col_x(col), y)`. A 1: PANEL fill, 4 px ACCENT outline, `1` 56 px INK, glow. A 0: PANEL fill, 2 px DIM outline, `0` 56 px DIM. Fades in over 0.15 s. Fast: 3 ghost copies 24, 48, 72 px above at alpha 0.30, 0.20, 0.10.
@@ -91,8 +91,9 @@ Screen map (1280 x 720):
 - **HUD** (x 170-1090; nothing at x < 150 or x > 1100 above y 70):
   - Score 40 px INK centred, baseline y 56.
   - Lives: 3 squares 20 x 20 at y 66-86, centres x 608 / 640 / 672: ACCENT alive, 2 px DIM outline when lost (BAD fill 0.4 s right after).
+  - Target row (T-0010): y 132-176, one 44 x 44 cell per column at `col_x(c)`, showing the byte to build: target 0 = faint TRACE square, target 1 not yet set = pulsing lime (ACCENT) outline, set = solid lime square with a BG `1`. It shifts with the register.
   - Byte progress: 8 drawn squares 20 x 20, centred at y 102, pitch 32 (no digits): finished bytes filled GOOD, the rest PANEL with a 2 px DIM outline. The newest square squashes 1.25x on byte complete. R0007: replaces the old `11110000` digit string.
-  - Banner 40 px ACCENT centred, baseline y 168, 1.2 s, fades over the last 0.3 s.
+  - Banner 40 px ACCENT centred at x 340, baseline y 56 (T-0018: in the HUD row left of the score, x about 240-440; clear of the corners, the target row y 132-176, the fall zone y 180-440 and the register, so it never draws over the bit or its lane), 1.2 s, fades over the last 0.3 s.
 - No READY text, no other instructions. The only words ever on screen: the banners and the popups below.
 
 ## Sound (Synth presets/tones/loop used, per studio/VISION.md)
@@ -151,7 +152,7 @@ Files (target ~620 lines, each under 300):
 | PITCH_STEP, PITCH_MAX | 0.04, 1.5 |
 | PAD_Y, PAD_SPLIT_L, PAD_SPLIT_R | 600.0, 480.0, 800.0 |
 
-**game.gd tunables:** palette Colors; `LIVES = 3`; `INTRO_TIME = 0.6`; `FIRST_SPAWN = 0.3`; `BYTE_PAUSE = 0.5`; `SLIDE_TIME = 0.10`; `FADE_IN = 0.15`; `SWIPE_PX = 48.0`, `TAP_SLOP = 40.0`; `LEFT_PAD = Rect2(170, 600, 300, 112)`, `DROP_PAD = Rect2(490, 600, 300, 112)`, `RIGHT_PAD = Rect2(810, 600, 300, 112)`; `PAD_DOWN_PX = 6.0`, `PAD_DOWN_TIME = 0.1`; `SQUASH = 1.25`, `SQUASH_TIME = 0.12`; `FAIL_TINT_TIME = 0.2`; `BANNER_TIME = 1.2`; `HINT_FLASH_TIME = 0.3`; `LOOP_NOTES`, `LOOP_VOL = 0.09`, `LOOP_RESTART_DELAY = 0.5`, `TOP_TRANSPOSE = 12`; `SHAKE_SOFT = 4.0`, `SHAKE_HARD = 14.0`, `HITSTOP = 0.06`; `BOT_STEP = 0.15`, `BOT_REACT = 0.50`, `BOT_SLAM_CHANCE = 0.5`.
+**game.gd tunables:** palette Colors; `LIVES = 3`; `INTRO_TIME = 0.6`; `FIRST_SPAWN = 0.1`; `BYTE_PAUSE = 0.5`; `SLIDE_TIME = 0.10`; `FADE_IN = 0.15`; `SWIPE_PX = 48.0`, `TAP_SLOP = 40.0`; `LEFT_PAD = Rect2(170, 600, 300, 112)`, `DROP_PAD = Rect2(490, 600, 300, 112)`, `RIGHT_PAD = Rect2(810, 600, 300, 112)`; `PAD_DOWN_PX = 6.0`, `PAD_DOWN_TIME = 0.1`; `SQUASH = 1.25`, `SQUASH_TIME = 0.12`; `FAIL_TINT_TIME = 0.2`; `BANNER_TIME = 1.2`; `HINT_FLASH_TIME = 0.3`; `LOOP_NOTES`, `LOOP_VOL = 0.09`, `LOOP_RESTART_DELAY = 0.5`, `TOP_TRANSPOSE = 12`; `SHAKE_SOFT = 4.0`, `SHAKE_HARD = 14.0`, `HITSTOP = 0.06`; `BOT_STEP = 0.15`, `BOT_REACT = 0.50`, `BOT_SLAM_CHANCE = 0.5`.
 
 **State (game.gd):** `rng`, `intro`, `t`, `reg`, `target`, `bytes_done`, `score`, `streak`, `lives`, the falling-bit fields, `spawn_wait`, `last_cols[2]`, `last_was_zero`, `slide_px`, `slide_t`, `wrap_col`, `pad_down_t[3]`, `drop_key`, `drop_touch`, `press_pos`, `press_zone`, `pressing`, `swiped`, `squash_c`, `squash_t`, `byte_flash_t`, `bad_c`, `bad_t`, `life_flash_t`, `hint_flash_t`, `banner_text`, `banner_t`, `last_phase`, `loop_restart_t`, `top_music`, `bot_t`.
 
