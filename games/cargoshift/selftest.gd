@@ -1,25 +1,118 @@
 extends SceneTree
-## Logic assertions for this game. check.sh runs:
-##   godot --headless --path . --script res://games/<slug>/selftest.gd
-## Must print SELFTEST OK. Test rules.gd only (autoloads aren't loaded here).
+## Cargo Shift logic assertions. Must print SELFTEST OK.
 
-const Rules := preload("res://games/cargoshift/rules.gd")
+const R := preload("res://games/cargoshift/rules.gd")
+
+
+func _near(a: float, b: float, e: float = 1e-4) -> bool:
+	return absf(a - b) <= e
+
+
+func _run(s: R.Ship, frames: int, dir: int, torque: float) -> int:
+	var ev := 0
+	for _i in frames:
+		ev |= R.step(s, 1.0 / 60.0, dir, torque)
+	return ev
 
 
 func _init() -> void:
-	var fails: Array[String] = []
-	if Rules.zone_width(0) != Rules.START_ZONE:
-		fails.append("zone starts at START_ZONE")
-	if Rules.zone_width(1000) != Rules.MIN_ZONE:
-		fails.append("zone never shrinks below MIN_ZONE")
-	if not Rules.is_hit(100.0, 100.0, 40.0) or Rules.is_hit(130.0, 100.0, 40.0):
-		fails.append("is_hit uses half the width")
-	if Rules.points(100.0, 100.0, 60.0) != 2 or Rules.points(125.0, 100.0, 60.0) != 1:
-		fails.append("perfect hits score double")
-	if Rules.marker_speed(10000) != Rules.MAX_SPEED:
-		fails.append("speed is capped")
-	for f in fails:
-		printerr("SELFTEST FAIL: " + f)
-	if fails.is_empty():
+	var f: Array[String] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	if R.ramp_time(0.0, 1) != 30.0 or R.ramp_time(5.0, 0) != 5.0:
+		f.append("ramp_time offset")
+	if not _near(R.swell_amp(0.0), 0.05) or not _near(R.swell_amp(100.0), 0.35):
+		f.append("swell_amp")
+	if not _near(R.wave_gap(10.0), 6.0) or not _near(R.wave_gap(30.0), 4.0) or not _near(R.wave_gap(100.0), 3.0):
+		f.append("wave_gap")
+	var p10 := R.wave_peak(10.0, rng)
+	var p100 := R.wave_peak(100.0, rng)
+	if p10 < 0.595 or p10 > 0.70 or p100 < 0.85 or p100 > 1.0:
+		f.append("wave_peak range")
+	if R.phase_name(5.0) != "" or R.phase_name(15.0) != "WAVES" or R.phase_name(25.0) != "CARGO" or R.phase_name(35.0) != "STORM":
+		f.append("phase_name")
+	if not R.is_grace(9.9) or R.is_grace(10.0) or not R.hints_on(29.9) or R.hints_on(30.0):
+		f.append("grace/hints")
+	var w := R.Wave.new()
+	w.t_hit = 1.0
+	w.side = -1
+	w.peak = 0.8
+	if not _near(R.wave_torque([w], 1.5), 0.8) or R.wave_torque([w], 0.9) != 0.0 or R.wave_torque([w], 2.1) != 0.0:
+		f.append("wave_torque")
+	# physics
+	var s := R.Ship.new()
+	_run(s, 600, 0, 0.0)
+	if s.tilt != 0.0 or not _near(s.cargo[0], -0.35) or not _near(s.cargo[1], 0.35):
+		f.append("calm ship stays level")
+	s = R.Ship.new()
+	var ev := 0
+	for _i in 600:
+		ev |= R.step(s, 1.0 / 60.0, 0, 1.0)
+	if not (s.cargo[0] + s.cargo[1] > 0.0) or not (ev & R.EV_CAPSIZE):
+		f.append("unanswered torque capsizes")
+	s = R.Ship.new()
+	ev = 0
+	for _i in 600:
+		ev |= R.step(s, 1.0 / 60.0, -1, 1.0)
+	if (ev & R.EV_CAPSIZE) or absf(s.tilt) > 0.3:
+		f.append("ballast cancels torque")
+	s = R.Ship.new()
+	var evs: Array[int] = []
+	for d in [1, 1, -1]:
+		evs.append(R.step(s, 1.0 / 60.0, d, 0.0))
+	if not (evs[0] & R.EV_SHIFT) or (evs[1] & R.EV_SHIFT) or not (evs[2] & R.EV_SHIFT):
+		f.append("EV_SHIFT on start and reverse only")
+	s = R.Ship.new()
+	var stops := 0
+	var stop_frame := 0
+	for i in 100:
+		if R.step(s, 1.0 / 60.0, 1, 0.0) & R.EV_STOP:
+			stops += 1
+			stop_frame = i + 1
+	if stops != 1 or stop_frame < 48 or stop_frame > 49:
+		f.append("EV_STOP once at frame 48/49 (got %d at %d)" % [stops, stop_frame])
+	s = R.Ship.new()
+	s.cargo = PackedFloat32Array([1.0, 1.0, 1.0])
+	s.ballast = -1.0
+	for _i in 1200:
+		s.cargo = PackedFloat32Array([1.0, 1.0, 1.0])
+		R.step(s, 1.0 / 60.0, 0, 0.0)
+	if not _near(s.tilt, 0.125, 0.01):
+		f.append("recoverability tilt %f" % s.tilt)
+	s = R.Ship.new()
+	s.tilt = 0.4
+	s.ballast = 0.5
+	R.rescue(s)
+	if s.tilt != 0.0 or s.roll_v != 0.0 or s.ballast != 0.0 or s.invuln != R.INVULN or s.cargo != s.home:
+		f.append("rescue")
+	ev = 0
+	s.tilt = 0.6
+	ev = R.step(s, 1.0 / 60.0, 0, 0.0)
+	if ev & R.EV_CAPSIZE:
+		f.append("no capsize while invuln")
+	# bot
+	for sd in range(1, 21):
+		var a := R.sim_round(sd, 0)
+		if a["capsizes"] != 0 or not a["won"] or a["time"] < 44.9 or a["time"] > 45.1 or a["max_tilt"] >= 0.2 \
+				or a["waves"] != 9 or a["shifts"] < 20 or a["score"] < 1500 or a["score"] > 2100:
+			f.append("bot d0 seed %d: %s" % [sd, str(a)])
+		var b := R.sim_round(sd, 1)
+		if b["capsizes"] != 0 or not b["won"] or b["max_tilt"] >= 0.3 or b["waves"] != 15:
+			f.append("bot d1 seed %d: %s" % [sd, str(b)])
+		var c := R.sim_round(sd, 0, true)
+		if c["capsizes"] < 1 or c["first_capsize"] < 10.0:
+			f.append("idle seed %d: %s" % [sd, str(c)])
+	# scoring and input
+	if R.steady_points(0) != 10 or R.steady_points(50) != 30 or R.shift_pitch(100) != 1.5 or R.final_score(1000, 2) != 1300:
+		f.append("scoring")
+	if R.pointer_dir(Vector2(639, 300), false, 0.0) != -1 or R.pointer_dir(Vector2(640, 300), false, 0.0) != 1:
+		f.append("pointer halves")
+	if R.pointer_dir(Vector2(700, 400), true, 650.0) != 1 or R.pointer_dir(Vector2(655, 400), true, 650.0) != 0:
+		f.append("pointer drag")
+	if not R.is_grab(Vector2(700, 495), Vector2(640, 495)) or R.is_grab(Vector2(800, 495), Vector2(640, 495)):
+		f.append("is_grab")
+	for m in f:
+		printerr("SELFTEST FAIL: " + m)
+	if f.is_empty():
 		print("SELFTEST OK")
-	quit(1 if not fails.is_empty() else 0)
+	quit(1 if not f.is_empty() else 0)
