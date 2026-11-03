@@ -1,0 +1,45 @@
+{
+  "paused": false,
+  "phase_override": null,
+  "lock": {
+    "held": false,
+    "since": null,
+    "run": null
+  },
+  "run_counter": 0,
+  "last_run": null,
+  "last_review_run": 0,
+  "closed_notified": false,
+  "timezone": "America/Los_Angeles",
+  "calendar": {
+    "content_freeze": "2026-11-22T00:00:00-08:00",
+    "release": "2026-11-28T00:00:00-08:00",
+    "submit_window": "2026-12-01T10:00:00-08:00",
+    "deadline": "2026-12-01T13:37:00-08:00"
+  },
+  "slots": 8,
+  "min_games": 5,
+  "ship_bar": 6.5,
+  "review_every": 6,
+  "review_every_polish": 4,
+  "shipped": 0,
+  "models": {
+    "creative_director": "opus",
+    "game_designer": "opus",
+    "jam_critic": "opus",
+    "gameplay_engineer": "sonnet",
+    "platform_engineer": "sonnet",
+    "audio_designer": "sonnet",
+    "tech_artist": "sonnet",
+    "qa_lead": "sonnet",
+    "release_manager": "sonnet"
+  },
+  "issues": {
+    "enabled": true,
+    "repo": "iladin/game-off-2026",
+    "authors": [
+      "iladin"
+    ],
+    "max_per_run": 3
+  }
+}

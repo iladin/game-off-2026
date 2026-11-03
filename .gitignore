@@ -1,0 +1,21 @@
+# Godot
+.godot/
+.import/
+*.translation
+export_credentials.cfg
+
+# Build output
+build/
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+
+# Factory scratch (Godot binary, screenshots, failed builds, live schedule dumps)
+.tools/
+
+# Python
+__pycache__/

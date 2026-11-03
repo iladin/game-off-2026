@@ -1,0 +1,7 @@
+# LF everywhere: the studio runs these scripts in Linux (WSL / the Claude VM), and CRLF breaks bash.
+* text=auto eol=lf
+*.png binary
+*.wav binary
+*.ogg binary
+*.ttf binary
+*.zip binary
