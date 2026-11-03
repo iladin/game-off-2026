@@ -82,10 +82,12 @@ static func blink_on(t: float, feed: int) -> bool:
 	return fposmod(t + feed * 0.8, 2.5) > 0.12
 
 
-static func draw_eyes(ci: CanvasItem, rc: Rect2, z: float, t: float, feed: int, rad: float, col: Color = INK) -> void:
+static func draw_eyes(ci: CanvasItem, rc: Rect2, z: float, t: float, feed: int, rad: float, col: Color = INK, keep_in: bool = false) -> void:
 	if not blink_on(t, feed):
 		return
 	var hp := head_pos(rc, z)
+	if keep_in:  # thumbnail: keep the eyes wholly inside the BAD cue outline (inner edge CUE_INSET + 2)
+		hp.y = clampf(hp.y, rc.position.y + CUE_INSET + 2.0 + rad + 3.0, rc.end.y - CUE_INSET - 2.0 - rad - 3.0)
 	var sep := 0.066 * BODY.x * body_scale(rc, z)
 	ci.draw_circle(hp + Vector2(-sep, 0), rad, col)
 	ci.draw_circle(hp + Vector2(sep, 0), rad, col)
@@ -196,7 +198,7 @@ static func draw_thumbs(ci: CanvasItem, font: Font, g) -> void:
 			continue
 		draw_hall(ci, rc, i, 0.6)
 		draw_static(ci, rc, 24, 3.0, 2.0, DIM)
-		draw_eyes(ci, rc, s.d[i], g.anim, i, 2.0 + 5.0 * s.d[i])
+		draw_eyes(ci, rc, s.d[i], g.anim, i, 2.0 + 5.0 * s.d[i], INK, true)
 		ci.draw_string(font, rc.position + Vector2(10, 34), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 32, DIM)
 		if i == s.watched:
 			ci.draw_rect(rc, a(BG, 0.88))

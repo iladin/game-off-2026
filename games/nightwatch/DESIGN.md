@@ -204,3 +204,7 @@ The margin stops it flicking between two feeds while the flash recharges. In the
 - Thumbnail outline (unwatched awake, `d >= 0.3`): 4 px, inset 5-9 px INSIDE the thumb (the thumb border ends 2 px in: 3 px clear of the outward hint glow and its ACCENT border).
 - Main-view bar (`d > 0.6`): 8 px wide at x 886-894, level with the feed's thumbnail: 3 px clear of the 6 px frame, 8 px clear of the hint arrow tip (x 902).
 - Shots: `.tools/shots/nightwatch/r14b-idle-360.png` (~5 s), `r14b-idle-600.png` (~9 s).
+
+## R0015 notes (T-0046)
+- Thumbnail creeper eyes are clamped (`draw_eyes(..., keep_in)`) to stay wholly inside the BAD cue outline (inner edge 9 px in, plus a 3 px margin), so they never straddle it; at high d they sit at the top of the thumb instead of rising out of it.
+- The main-view bar appears at `CUE_BAR_D = 0.6` (d > 0.6, about 8 s into the round for the first creeper). Kept: the thumbnail outline (d >= 0.3, ~4 s) already warns earlier, and the bar is the late "now" cue.
