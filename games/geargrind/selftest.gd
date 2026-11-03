@@ -1,23 +1,43 @@
 extends SceneTree
-## Logic assertions for this game. check.sh runs:
-##   godot --headless --path . --script res://games/<slug>/selftest.gd
-## Must print SELFTEST OK. Test rules.gd only (autoloads aren't loaded here).
+## Gear Grind rule assertions. Must print SELFTEST OK.
 
 const Rules := preload("res://games/geargrind/rules.gd")
 
 
 func _init() -> void:
 	var fails: Array[String] = []
-	if Rules.zone_width(0) != Rules.START_ZONE:
-		fails.append("zone starts at START_ZONE")
-	if Rules.zone_width(1000) != Rules.MIN_ZONE:
-		fails.append("zone never shrinks below MIN_ZONE")
-	if not Rules.is_hit(100.0, 100.0, 40.0) or Rules.is_hit(130.0, 100.0, 40.0):
-		fails.append("is_hit uses half the width")
-	if Rules.points(100.0, 100.0, 60.0) != 2 or Rules.points(125.0, 100.0, 60.0) != 1:
-		fails.append("perfect hits score double")
-	if Rules.marker_speed(10000) != Rules.MAX_SPEED:
-		fails.append("speed is capped")
+	var lo := 0.65
+	var hi := 0.95
+	if Rules.judge(0.60, lo, hi) != Rules.EARLY: fails.append("judge early")
+	if Rules.judge(0.70, lo, hi) != Rules.GOOD: fails.append("judge good")
+	if Rules.judge(0.80, lo, hi) != Rules.PERFECT: fails.append("judge perfect")
+	if Rules.judge(0.96, lo, hi) != Rules.LATE: fails.append("judge late")
+	if Rules.judge(1.05, lo, hi) != Rules.LATE: fails.append("judge red is late")
+	if Rules.shift_points(Rules.EARLY) != 0 or Rules.shift_points(Rules.GOOD) != 15 \
+			or Rules.shift_points(Rules.PERFECT) != 30 or Rules.shift_points(Rules.LATE) != 5:
+		fails.append("shift points 0/15/30/5")
+	if Rules.shift_pitch(0) != 1.0: fails.append("pitch base")
+	if not is_equal_approx(Rules.shift_pitch(5), 1.2): fails.append("pitch streak 5")
+	if Rules.shift_pitch(100) != 1.5: fails.append("pitch cap")
+	if Rules.ramp_time(0.0, 1) != 30.0: fails.append("ramp difficulty offset")
+	if Rules.ramp_time(12.0, 0) != 12.0: fails.append("ramp plain")
+	if Rules.gears_for(0.0) != 3 or Rules.gears_for(25.0) != 4 or Rules.gears_for(45.0) != 5:
+		fails.append("gears_for")
+	if Rules.band_width(1000.0) != Rules.BAND_MIN: fails.append("band min width")
+	if Rules.band_offset(0, 29.9) != 0.0 or Rules.band_offset(0, 30.0) != -0.10:
+		fails.append("band moves at 30")
+	if not Rules.is_grace(9.9) or Rules.is_grace(10.0): fails.append("grace edge")
+	if not Rules.blow_on(10.0) or Rules.blow_on(9.9): fails.append("blow edge")
+	if Rules.rival_mult(1000.0) != Rules.RIVAL_MIN: fails.append("rival floor")
+	var b := Rules.band(0.0, 0)
+	if not is_equal_approx(b.x, 0.65) or not is_equal_approx(b.y, 0.95): fails.append("band at r=0")
+	if absf(Rules.simulate(4, 0.80, lo, hi) - Rules.PAR_TIME[4]) >= 0.15: fails.append("sim par 4 gears")
+	if Rules.simulate(3, 2.0, lo, hi) <= Rules.rival_time(3, 0.0): fails.append("never shifting loses warm-up")
+	if Rules.simulate(3, 0.55, lo, hi) >= Rules.rival_time(3, 0.0): fails.append("all-early wins warm-up")
+	if Rules.simulate(4, 0.88, lo, hi) >= Rules.rival_time(4, 30.0): fails.append("all-good wins at r=30")
+	var rt := Rules.rival_time(4, 20.0)
+	if Rules.rival_dist(rt, rt) != Rules.TRACK: fails.append("rival reaches TRACK at T")
+	if Rules.final_score(100, 2) != 200: fails.append("final score")
 	for f in fails:
 		printerr("SELFTEST FAIL: " + f)
 	if fails.is_empty():
