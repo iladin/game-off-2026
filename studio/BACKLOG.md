@@ -2,12 +2,9 @@
 
 Format: `- [T-####] P0|P1|P2 | role | game-or-area | title` with an indented `accept:` line (one or more testable criteria) and optional `source:` (review, INBOX, #issue).
 P0 = broken or blocks the jam · P1 = clearly hurts a jam score · P2 = polish. The Producer keeps Ready sorted P0 → P2, then oldest first.
-Next id: T-0023
+Next id: T-0025
 
 ## Ready
-- [T-0015] P2 | gameplay-engineer | geargrind | GO moment and lasting tap cue
-  accept: at the end of staging the lights flash white then GOOD, a 56 px `GO` banner shows and the lever pulses (a shot at staging t about 1.7 s shows them); the `SPACE OR TAP` cue stays until the first successful shift; `./scripts/check.sh geargrind` PASS.
-  source: review R0006 (critic fix 6, QA 8)
 - [T-0017] P2 | platform-engineer | hub | Touch-friendly hub
   accept: the PLAY button is at least 96 px tall (or the whole info panel launches); after a touch input the footer reads touch wording (e.g. `TAP A BIT   TAP PLAY`), keyboard wording otherwise; hub selftest and `./scripts/check.sh hub` PASS.
   source: review R0006 (QA 6, 7)
@@ -26,14 +23,19 @@ Next id: T-0023
 - [T-0021] P2 | qa-lead | cargoshift+hub | Unseen states: Cargo Shift STORM banner, difficulty 1 start, touch drag; 7-cell hub with OVERFLOW
   accept: shots show Cargo Shift's STORM banner (about frame 1900), a difficulty 1 start (via the gauntlet, game 6) with storm on and hints off, and the real 6-game hub with `--qa-overflow` (7 cells, clear corners); a non-autoplay gauntlet run that loses a life shows the dim lost-life square; findings filed as tasks.
   source: R0008 QA verify (Cargo Shift, T-0003)
-- [T-0022] P2 | gameplay-engineer | uppercase+bitcatcher | Small layout margins
-  accept: Upper Case's pressed J label has >= 6 px margin above its key outline (e.g. `keys_draw.gd:130` offset r.end.y - 28); Bit Catcher's phase banner is clamped so any phase name stays inside x 170-1090; shots of both; check.sh for both PASS.
-  source: R0008 QA verify (T-0016, T-0018)
+- [T-0023] P2 | gameplay-engineer | nightwatch | Start-frame eyes and a scarier full-size creeper
+  accept: the start shot shows small eyes in feed 2 (one zero-dt step or intro draw) and feed 1 looks dark as watched; the full-size creeper (idle shot about frame 1250) has larger eyes or a faint INK edge, not a plain box; `games/nightwatch/game.gd` no longer writes `watch.watched` directly (or DESIGN.md allows it); `./scripts/check.sh nightwatch` PASS.
+  source: R0009 QA verify (Night Watch P2 1-3)
+- [T-0024] P2 | gameplay-engineer | redshift | Show the heavies; tidy names and size
+  accept: a shot at about frame 2400 (or via a QA flag) shows a heavy enemy at 1.5x size with its hp squares, readable; `BAND_COL_NOW` renamed to lower case; `rules.gd` under ~300 lines (move helpers if needed); `./scripts/check.sh redshift` PASS.
+  source: R0009 QA verify (Red Shift P2 2-4)
 
 ## In progress
 
 ## Done
 <!-- - [T-####] ... · R#### · <sha> -->
+- [T-0022] P2 | gameplay-engineer | uppercase+bitcatcher | Small layout margins · R0009 · 4efc29a
+- [T-0015] P2 | gameplay-engineer | geargrind | GO moment and lasting tap cue · R0009 · 9f69a32
 - [T-0003] P2 | platform-engineer | hub+shared | OVERFLOW finale: gold cell and additive Arcade gauntlet API (VISION 7, later #2) · R0008 · af2b9bf
 - [T-0018] P2 | gameplay-engineer | bitcatcher | Phase banner off the fall zone; DESIGN.md catch-up · R0008 · 3647192
 - [T-0016] P2 | audio-designer | uppercase | Custom tones and readable key labels · R0008 · 9fa4f58
