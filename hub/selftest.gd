@@ -39,6 +39,8 @@ func _init() -> void:
 	assert(Rules.demo_entries(8).size() == 8)
 	var r9 := Rules.cell_rects(9)
 	assert(r9[0].position.x >= 16.0 and r9[8].end.x <= 1264.0)
+	assert(Rules.footer_text(true) == "TAP A BIT   TAP PLAY" and Rules.footer_text(false).contains("ENTER"))
+	assert(Rules.span(1) > 0.0)
 	var g := G.new_state(3)
 	assert(g["lives"] == 3 and g["index"] == 0 and not G.is_done(g))
 	G.tick(g, 7.9, 50)

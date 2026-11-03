@@ -62,6 +62,11 @@ static func merge_seen(seen: Array, added: Array) -> Array[String]:
 	return out
 
 
+## Footer hint line: touch wording after a touch input, keyboard wording otherwise.
+static func footer_text(touch: bool) -> String:
+	return "TAP A BIT   TAP PLAY" if touch else "LEFT / RIGHT choose   ENTER or tap PLAY   M sound"
+
+
 static func span(n: int) -> float:
 	return n * CELL.x + maxf(0.0, n - 1.0) * GAP
 

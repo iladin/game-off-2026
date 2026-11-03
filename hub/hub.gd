@@ -7,6 +7,7 @@ extends Node2D
 ## OVERFLOW finale: one extra cell after the last bit (dim and locked until Rules.overflow_unlocked, then gold;
 ## launching it runs Arcade.start_gauntlet()). Debug: `-- --qa-overflow` fakes every bit set (inert: no Save writes);
 ## `-- --hubdemo=8` shows the locked cell, `-- --hubdemo=8 --qa-overflow` the unlocked one.
+## Debug: `-- --qa-touch` shows the touch footer (TAP A BIT   TAP PLAY) without a touch.
 ## Debug: `-- --hubempty` shows the zero-games empty state.
 ## Debug: `-- --hubdemo=8 --hubceremony=2` plays the ceremony on demo cell 3 (index 2) at 0.5 s.
 
@@ -27,7 +28,7 @@ const DOT_SPEED := 120.0
 const DOT_SPACING := 160.0
 const HEAD_TIME := 0.15
 const PANEL_RECT := Rect2(64, 440, 1152, 236)
-const PLAY_SIZE := Vector2(260, 80)
+const PLAY_SIZE := Vector2(280, 104) ## at least 96 px tall for touch; sits in the panel, below the cell row
 const FLIP_DELAY := 0.5
 const FLIP_TIME := 0.25
 const FLIP_GAP := 0.6
@@ -39,6 +40,7 @@ var font: Font = ThemeDB.fallback_font
 var _entries: Array[Dictionary] = []
 var _rects: Array[Rect2] = []
 var _demo: bool = false
+var _touch: bool = false ## true after a touch input (or `-- --qa-touch`): footer shows touch wording
 var _overflow_on: bool = false
 var _head: Rect2 = Rect2()
 var _head_from: Rect2 = Rect2()
@@ -50,6 +52,7 @@ var _flip_done: Dictionary = {} ## cell index -> true once the 1 has landed (bur
 
 func _ready() -> void:
 	_demo = Arcade.hubdemo > 0
+	_touch = "--qa-touch" in OS.get_cmdline_user_args()
 	if _demo:
 		_entries = Rules.demo_entries(Arcade.hubdemo)
 		for a in OS.get_cmdline_user_args():
@@ -162,6 +165,10 @@ func _select(i: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		_touch = true
+	elif event is InputEventKey or event is InputEventJoypadButton:
+		_touch = false
 	var n := _cells()
 	if n == 0:
 		return
@@ -372,7 +379,7 @@ func _info() -> void:
 
 
 func _footer() -> void:
-	_text("LEFT / RIGHT choose   ENTER or tap PLAY   M sound", Vector2(640, 700), 22, DIM)
+	_text(Rules.footer_text(_touch), Vector2(640, 700), 22, DIM)
 
 
 ## Centred on `center` (both axes).
