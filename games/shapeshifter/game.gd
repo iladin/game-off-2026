@@ -345,7 +345,7 @@ func _draw_wall(w: Wall, s_mul: float, a_mul: float, outline_only: bool) -> void
 	var s := Rules.wall_scale(p) * s_mul
 	var alpha := clampf(p / FADE_IN_P, 0.0, 1.0) * a_mul
 	var col := Color(TD.ACCENT, (0.5 + 0.5 * p) * a_mul)
-	var lw := maxf(1.5, 4.0 * s)
+	var lw := maxf(3.0, 5.0 * s)
 	if w.out_t < 0.0 and p > WARN_P:
 		if Rules.passes(player_shape, w.shape):
 			col = TD.ACCENT
@@ -358,6 +358,9 @@ func _draw_wall(w: Wall, s_mul: float, a_mul: float, outline_only: bool) -> void
 		# Drawn over the player, so accent-on-accent would vanish: use INK (or BAD) here.
 		if absf(col.g - TD.ACCENT.g) < 0.01:
 			col = Color(TD.INK, maxf(col.a, 0.5 + 0.5 * p))
+		# Gap over the player: BG fill plus a thick BG halo so the hole reads as a gap.
+		TD.draw_fan(self, TD.VP, rad, Color(TD.BG, 0.55 * clampf(p / FADE_IN_P, 0.0, 1.0)))
+		TD.draw_outline(self, TD.VP, rad, Color(TD.BG, 0.9), maxf(lw, 3.0) + 8.0)
 		TD.draw_outline(self, TD.VP, rad, col, maxf(lw, 3.0))
 	else:
-		TD.draw_wall(self, rad, s, alpha, col, lw)
+		TD.draw_wall(self, rad, s, alpha, col, lw, p)

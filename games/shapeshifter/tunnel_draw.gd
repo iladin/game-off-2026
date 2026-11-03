@@ -71,22 +71,26 @@ static func draw_exit(ci: CanvasItem, k: float) -> void:
 
 
 ## A wall: PANEL ring (square outside, shape hole inside) as 2 triangles per ray.
-static func draw_wall(ci: CanvasItem, hole_rad: PackedFloat32Array, s: float, alpha: float, outline: Color, outline_w: float) -> void:
+static func draw_wall(ci: CanvasItem, hole_rad: PackedFloat32Array, s: float, alpha: float, outline: Color, outline_w: float, depth: float = 1.0) -> void:
 	var n := hole_rad.size()
 	var inner := ring_points(VP, hole_rad)
 	var outer := PackedVector2Array()
 	for i in n:
 		var ang := Rules.ray_angle(i)
 		outer.append(VP + Vector2.from_angle(ang) * Rules.square_radius(ang, WALL_HALF * s))
-	var fill := Color(PANEL, alpha)
+	# Depth tint: far walls sink toward BG, near walls rise toward TRACE.
+	var fill := Color(BG.lerp(PANEL, clampf(depth * 1.5, 0.0, 1.0)).lerp(TRACE, clampf(depth * 1.2 - 0.3, 0.0, 0.9)), alpha)
 	for i in n:
 		var j := (i + 1) % n
 		ci.draw_colored_polygon(PackedVector2Array([inner[i], outer[i], outer[j]]), fill)
 		ci.draw_colored_polygon(PackedVector2Array([inner[i], outer[j], inner[j]]), fill)
+	# Hole reads as a gap: BG fill (partly see-through) so grid and rings stop at the wall.
+	draw_fan(ci, VP, hole_rad, Color(BG, alpha))
 	var half := WALL_HALF * s
 	ci.draw_rect(Rect2(VP - Vector2(half, half), Vector2(half, half) * 2.0), Color(TRACE, alpha), false, 2.0)
 	var line := PackedVector2Array(inner)
 	line.append(inner[0])
+	ci.draw_polyline(line, Color(BG, alpha), outline_w + 4.0, true)
 	ci.draw_polyline(line, outline, outline_w, true)
 
 
