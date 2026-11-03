@@ -2,7 +2,7 @@
 
 Format: `- [T-####] P0|P1|P2 | role | game-or-area | title` with an indented `accept:` line (one or more testable criteria) and optional `source:` (review, INBOX, #issue).
 P0 = broken or blocks the jam · P1 = clearly hurts a jam score · P2 = polish. The Producer keeps Ready sorted P0 → P2, then oldest first.
-Next id: T-0055
+Next id: T-0064
 
 ## Ready
 - [T-0031] P1 | release-manager | uppercase (web) | Chromium reports Left/Right Shift location
@@ -16,23 +16,26 @@ Next id: T-0055
   accept: shots show gear 5 with a moved band, the needle in the red with the pulsing red zone and BAD tint, and the BLOWN banner with its red flash (needs T-0025 and a bot option that shifts late); findings filed as tasks.
   source: R0011 QA T-0007 (findings 1, 2)
   status R0015: unblocked (T-0044 `--sloppy`). QA saw the red zone (play-840) and BLOWN (play-900) with `SHIFT_QA="--rstart=40 --sloppy"`; findings filed as T-0051, T-0053. Left: FIFTH GEAR / HEAT banners not caught at those frames.
-- [T-0056] P2 | gameplay-engineer | geargrind | Popup slots crowd the tach dial
-  accept: with `SHIFT_QA="--rstart=40" ./scripts/shots.sh geargrind 800 820` both stacked popups stay separated (>= 40 px) and neither label overlaps the tach arc (e.g. stack upward from 520, or start higher); check.sh geargrind PASS.
-  source: R0016 QA re-verify T-0053 (finding 2); Producer shot play-820 (+15 at y~535 over the arc)
-- [T-0057] P2 | gameplay-engineer | geargrind | LEVEL gap label overlaps the checker start line
-  accept: in default shots (frame 240) and `--rstart=40` frame 1080 the LEVEL label is fully readable, clear of the checker line; check.sh geargrind PASS.
-  source: R0016 QA verify T-0051 (finding 3)
-- [T-0058] P2 | gameplay-engineer | redshift | DODGE popup: full INK through its read window, placed at the crash point
-  accept: an idle no-autoplay crash shot (`--game=redshift --shotframes=660`, try several frames) shows DODGE at full INK near the ship's crash point, not mid-fade grey at the x clamp; DESIGN.md matches; check.sh redshift PASS.
-  source: R0016 QA verify T-0052 (finding 3), T-0055 (finding 2)
-- [T-0059] P2 | gameplay-engineer | nightwatch | QA flag to hold high danger on an unwatched thumb
-  accept: a `--nwqa-hold` (or similar) flag keeps a cam unwatched without breach reset so a shot shows thumbnail eyes at d 0.8-0.95 inside the outline; the no-flag path is unchanged; check.sh nightwatch PASS.
-  source: R0016 QA verify T-0054 (findings 1, 3)
+
+- [T-0061] P2 | gameplay-engineer | geargrind | Popups clear of the RIVAL AHEAD label and rival car
+  accept: with `SHIFT_QA="--rstart=40"` shots at 790, 810, 830 (one per run) no popup glyph box intersects the "RIVAL AHEAD n m" label/bracket (y ~315-370, x ~520-760) or the rival car (e.g. skip candidate y 255..370 in `Rules.popup_pick_y`, or draw the label above popups); the unused `popup_slot`/`popup_slot_y`/`POP_SLOTS` helpers are removed from rules.gd; selftest 40 px gap still passes; check.sh geargrind PASS.
+  source: R0017 QA re-verify T-0056 (findings 1, 2; b830 popup at y~314 over "27 m", b810 over the rival car)
+- [T-0062] P2 | gameplay-engineer | geargrind | Bumper tick readable against the checker at the start
+  accept: in `SHIFT_QA="--rstart=40" ./scripts/shots.sh geargrind 1080` the LEVEL bumper tick (x ~470, y 361..385) is distinguishable from the checker (outline or nudge), optionally tied to the LEVEL panel by a short leader; check.sh geargrind PASS.
+  source: R0017 QA verify T-0057 (findings 1, 2)
+- [T-0063] P2 | gameplay-engineer | nightwatch | --nwqa-hold cap in the selftest; recipe wording
+  accept: a pure `R.hold_cap` (or similar) is used by game.gd and a selftest asserts an awake unwatched feed forced to 1.2 ends at 0.92 while the watched feed is untouched; DESIGN.md recipe says "CAM 2 and CAM 3 held at 0.92 (CAM 1 watched)" for frame 1250 without --nwqa; no-flag path unchanged; check.sh nightwatch PASS.
+  source: R0017 QA verify T-0059 (findings 1, 3)
 
 ## In progress
 
 ## Done
 <!-- - [T-####] ... · R#### · <sha> -->
+- [T-0056] P2 | gameplay-engineer | geargrind | Popup slots clear of the tach (free-y picker; passed after one fix round) · R0017 · ba3f475
+- [T-0058] P2 | gameplay-engineer | redshift | DODGE popup full INK at the crash point · R0017 · 9b67e65
+- [T-0059] P2 | gameplay-engineer | nightwatch | --nwqa-hold QA flag for high-danger thumbs · R0017 · fa85817
+- [T-0057] P2 | gameplay-engineer | geargrind | LEVEL gap label on a panel clear of the checker · R0017 · 8674834
+- [T-0060] P2 | gameplay-engineer | redshift | Popup fade from Rules.popup_alpha; --seed=4 DODGE recipe (filed and done in R0017) · R0017 · bd3354d
 - [T-0050] P2 | gameplay-engineer | cargoshift | DESIGN.md sea wording: amplitude at the deck edges · R0016 · 36ca573
 - [T-0051] P2 | gameplay-engineer | geargrind | BLOWN aftermath reads as a dead engine; TOP inside the dial · R0016 · 6b21645
 - [T-0052] P2 | gameplay-engineer | redshift | Stagger close-kill popups; DODGE popup readable · R0016 · 8719e64
