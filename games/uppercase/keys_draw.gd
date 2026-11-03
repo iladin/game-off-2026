@@ -88,9 +88,16 @@ static func draw_strip(ci: CanvasItem, lit_ch: String, lit_upper: bool, flash_ch
 		ci.draw_line(Vector2(dx, Rules.ROW_Y[row]), Vector2(dx, Rules.ROW_Y[row] + Rules.KEY_H), TRACE, 2.0)
 
 
-static func _glow(ci: CanvasItem, rect: Rect2, scale: float, a: float) -> void:
-	var c := rect.get_center()
-	var big := Rect2(c - rect.size * scale * 0.5, rect.size * scale).intersection(GLOW_CLIP)
+static func _glow(ci: CanvasItem, rect: Rect2, inset: float, a: float, side: int) -> void:
+	# Fixed inset around the hinted key only; never crosses the midpoint of the gap to the other Shift key.
+	var big := rect.grow(inset).intersection(GLOW_CLIP)
+	var mid := SCREEN.size.x * 0.5
+	if side == Rules.LEFT:
+		big.end.x = minf(big.end.x, mid)
+	else:
+		var x0 := maxf(big.position.x, mid)
+		big.size.x = big.end.x - x0
+		big.position.x = x0
 	if big.size.x > 0.0 and big.size.y > 0.0:
 		ci.draw_rect(big, Color(ACCENT, a))
 
@@ -101,8 +108,8 @@ static func draw_shift_key(ci: CanvasItem, rect: Rect2, side: int, down: bool, h
 		r.position.y += 6.0
 	if hint:
 		var pulse := 0.5 + 0.5 * sin(TAU * 3.0 * t)
-		_glow(ci, r, 1.6, 0.10)
-		_glow(ci, r, 1.3, 0.25)
+		_glow(ci, r, 22.0, 0.10, side)
+		_glow(ci, r, 10.0, 0.25, side)
 		ci.draw_rect(r, PANEL)
 		ci.draw_rect(r, Color(ACCENT, pulse), false, 6.0)
 	else:
