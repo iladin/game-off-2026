@@ -138,12 +138,14 @@ static func _arc(ci: CanvasItem, r0: float, r1: float, col: Color, w: float = 24
 	ci.draw_arc(TACH_C, TACH_R - 14.0, Rules.needle_angle(r0), Rules.needle_angle(r1), 160, col, w)
 
 
-static func draw_tach(ci: CanvasItem, shown: float, lo: float, hi: float, top_gear: bool, red_t: float, t: float, in_band: bool) -> void:
+static func draw_tach(ci: CanvasItem, shown: float, lo: float, hi: float, top_gear: bool, red_t: float, t: float, in_band: bool, dead: bool = false) -> void:
 	_arc(ci, 0.0, 1.0, TRACE)
 	var red_col := BAD if (red_t > 0.0 and sin(TAU * 4.0 * t) > 0.0) else Color(BAD, 0.6)
+	if top_gear or dead:
+		red_col = Color(DIM, 0.35)  # inactive: nothing to blow in the top gear / engine already dead
 	_arc(ci, 1.0, Rules.RPM_MAX, red_col)
 	if top_gear:
-		text(ci, "TOP", 880, 690, 28, DIM, 120.0)
+		text(ci, "TOP", TACH_C.x, TACH_C.y - 60.0, 28, INK, 120.0)
 	else:
 		_arc(ci, lo, hi, ACCENT)
 		var c := (lo + hi) * 0.5
@@ -239,3 +241,12 @@ static func draw_gap(ci: CanvasItem, d: float, rival_d: float) -> void:
 	ci.draw_line(Vector2(b, y - 12), Vector2(b, y + 12), col, 3.0)
 	var label := ("RIVAL AHEAD %d m" if gap > 0.0 else "YOU LEAD %d m") % int(absf(gap))
 	text(ci, label, clampf((a + b) * 0.5, 160.0, 1120.0), y - 16.0, 24, col, 320.0)
+
+
+## Smoke rising from a dead engine: grey puffs drifting up and back, growing and fading. t = seconds since the blow.
+static func draw_smoke(ci: CanvasItem, origin: Vector2, t: float) -> void:
+	for i in 9:
+		var k := fposmod(t * 0.9 + float(i) / 9.0, 1.0)
+		var p := origin + Vector2(-70.0 * k + 8.0 * sin(float(i) * 2.3 + t * 5.0), -110.0 * k)
+		ci.draw_circle(p, 14.0 + 34.0 * k, Color(DIM, 0.8 * (1.0 - k)))
+		ci.draw_circle(p, 8.0 + 20.0 * k, Color(TRACE, 0.7 * (1.0 - k)))
