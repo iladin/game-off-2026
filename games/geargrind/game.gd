@@ -87,12 +87,21 @@ var engine_skip: bool = false
 var loop_restart_t: float = -1.0
 var top_loop: bool = false
 var bot_target: float = 0.8
+var sloppy: bool = false
 var clock: float = 0.0
 var go_t: float = 0.0
 var shifted_once: bool = false
 
 
+## QA only (desktop, never on web): `--sloppy` in the launch args or SHIFT_QA makes the autoplay bot shift late.
+func _qa_sloppy() -> bool:
+	if OS.has_feature("web"):
+		return false
+	return "--sloppy" in OS.get_cmdline_user_args() or "--sloppy" in OS.get_environment("SHIFT_QA").split(" ", false)
+
+
 func begin() -> void:
+	sloppy = autoplay and _qa_sloppy()
 	elapsed = 0.0
 	intro = INTRO_TIME
 	blip2_done = false
@@ -272,6 +281,11 @@ func _race(delta: float) -> void:
 
 
 func _bot() -> void:
+	if sloppy:
+		# QA: heat 1 shifts only after 0.4 s in the red zone (late); later heats never shift and so BLOW.
+		if heat <= 1 and g < gears - 1 and red_t >= 0.4:
+			_shift()
+		return
 	if g < gears - 1 and Rules.rpm(v, g) >= bot_target:
 		_shift()
 

@@ -229,3 +229,6 @@ Files (target ~600 lines total, each under 300):
 - Judging against the audio clock; the needle position at the press is the only judge.
 - Files of any kind (sprites, samples, fonts): everything is `_draw()` and Synth.
 - Gamepad support (a free bonus at most).
+
+## QA note: `--sloppy`
+Desktop only (ignored on web), autoplay only. `--sloppy` (launch arg, or `SHIFT_QA="--rstart=40 --sloppy"`) makes the bot shift late: heat 1 shifts only after 0.4 s in the red zone (needle pinned red, LATE shifts), later heats never shift so the engine BLOWS. Without the flag nothing changes. Example: `SHIFT_QA="--rstart=40 --sloppy" ./scripts/shots.sh geargrind 150 400`.
