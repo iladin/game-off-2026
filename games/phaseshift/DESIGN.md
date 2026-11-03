@@ -36,7 +36,7 @@ The decision: which world you must be in for the next thing, and doing the phase
 - **Hard fail (costs a life):** `EV_FALL` (fell below `FAIL_Y`) or `EV_CRASH` (centre inside a wall cell of your own world). Then `Rules.rescue(...)`: back on the floor line, 1.2 s invulnerable (a ghost bridge holds you up, walls are ignored), world auto-fitted to the floor ahead. **Grace:** while `r < GRACE_END` (10 s) a hard fail costs nothing: soft-fail feedback plus a one-word popup in DIM naming what was needed (`PHASE` or `JUMP`), then the same rescue. So the first 10 s cannot be lost.
 - **Lose:** lives reach 0: `finish(score, false)` in the same frame as the hard-fail effects.
 - `finish()` exactly once per round (return right after). Never play `win` / `lose`.
-- **Score:** `CELL_PTS = 2` per new floor cell reached (180 cells to the gate = 360). Orb (collect in your world): `Rules.orb_points(streak) = 20 + 2 * min(streak, 10)` (streak before this orb). Passing through a wall: `WALL_PTS = 15`. Win: `+150` per life left. `streak` counts orbs and wall passes since the last fail (any fail, grace included, resets it). A clean bot round scores about 2,300-2,900.
+- **Score:** `CELL_PTS = 2` per new floor cell reached (180 cells to the gate = 360). Orb (collect in your world): `Rules.orb_points(streak) = 20 + 2 * min(streak, 10)` (streak before this orb). Passing through a wall: `WALL_PTS = 15`. Win: `+150` per life left. `streak` counts orbs and wall passes since the last fail (any fail, grace included, resets it). A clean bot round (no fails, win) scores about 1,750-1,950 (`sim_bot_round` over seeds 1-20 at difficulty 0: 1,730-2,040, mean about 1,870; `res.score` already includes the 450 life bonus).
 - **Typical length:** 40.6 s for any surviving round including the intro (34 s at difficulty 1). A losing round ends sooner.
 
 ## Ramp (with numbers)
@@ -51,7 +51,7 @@ Round time `t` counts from the loop start (end of intro). Ramp time `r = Rules.r
 | 0 (0-10 s) | 280-320 | 6-9 | none | bridge | 3 | `""` |
 | 1 (10-20 s) | 320-360 | 6-9 | 1 cell | bridge | 2 | `JUMP` |
 | 2 (20-30 s) | 360-400 | 5-8 | 1 cell | 50%: wall bridge (2, wall, 2), else bridge | 2 | `WALLS` |
-| 3 (30 s+) | 400-440 | 4-7 | 1 or 2 cells (50/50) | 1/3 wall bridge (1, wall, 1); 1/3 cross gap (1 or 2 hole cells, no bridge); 1/3 bridge | 1 | `TOP SPEED` |
+| 3 (30 s+) | 400-440 | 6-8 | 1 or 2 cells (50/50) | 1/3 wall bridge (1, wall, 1); 1/3 cross gap (1 or 2 hole cells, no bridge); 1/3 bridge | 1 | `TOP SPEED` |
 
 - `hints_on(r)`: r < 30. `is_grace(r)`: r < 10. Banners show when `phase_name(r)` differs from the last shown (start `""`), so at difficulty 1 `TOP SPEED` shows at once.
 - Jump geometry: `JUMP_V = -900`, `GRAVITY = 2600`: air time `AIR_TIME = 2 * 900 / 2600 = 0.692` s, apex 156 px. Air distance 221 px at 320 px/s, 305 px at 440. A 1-cell hole (80 px) leaves 141 px of take-off window at 320 px/s (0.44 s); a 2-cell hole (160 px) at 400 px/s leaves 117 px (0.29 s). Walls are 360 px tall: never jumpable.
@@ -180,7 +180,7 @@ Files (target ~820 lines, each under 300):
 | SPEED_START, SPEED_RAMP, SPEED_MAX | 280.0, 4.0, 440.0 |
 | GOAL_DIST, GOAL_CELLS, TOTAL_CELLS, START_CELLS | 14400.0, 180, 210, 8 |
 | ZONE_CELLS | [37, 80, 127] |
-| RUN_MIN, RUN_MAX | [6, 6, 5, 4], [9, 9, 8, 7] |
+| RUN_MIN, RUN_MAX | [6, 6, 5, 6], [9, 9, 8, 8] |
 | BRIDGE_CELLS | [3, 2, 2, 1] |
 | JUMP_V, GRAVITY, AIR_TIME | -900.0, 2600.0, 0.6923 |
 | COYOTE, JUMP_BUFFER, PHASE_COOLDOWN | 0.10, 0.10, 0.15 |
@@ -203,7 +203,7 @@ Files (target ~820 lines, each under 300):
 ## Autoplay bot (how it plays; must reach finish() within 60 s)
 Deterministic, pure, and the same code the selftest simulates: `Rules.bot_input(b, course, x, v) -> int` (bit 1 = jump, bit 2 = phase), called every frame in step 3 above, and its flags go through the same `Rules.step` as the player's keys and taps. It never reads `rng`.
 - **Phase:** `need = need_world(course, cell_of(x + BOT_PHASE_LOOK))` (44 px ahead). If `need != 0 and need != b.world`: phase. (Bridges and the cell before a wall are at least 1 cell = 80 px of both-world floor, so 44 px ahead always fires on a safe cell; over a cross gap it fires in mid-air. If `phase_cd` blocks it, it simply asks again next frame.)
-- **Jump:** if `b.grounded or b.coyote > 0`: `h = next_hole(course, x)`; if `h.x >= 0`: `to_hole = h.x * CELL - x`, `lead = max(BOT_MIN_LEAD, (v * AIR_TIME - h.y * CELL) / 2.0)`; jump when `to_hole <= lead` (this centres the arc over the hole: lands `lead` px past it, at most 112 px, always on the 2+ ground cells after it).
+- **Jump (one hole ahead):** if `b.grounded or b.coyote > 0`: `h = next_hole(course, x)`; if `h.x >= 0`: `to_hole = h.x * CELL - x`, `span = v * AIR_TIME - h.y * CELL` (air distance minus the hole), `lead = max(BOT_MIN_LEAD, span / 2.0)` (lands `lead` px past the hole, centring the arc). It also looks at the hole after that one: `h2 = next_hole(course, (h.x + h.y) * CELL)`; if there is one, `after = h2.x * CELL - (h.x + h.y) * CELL`, `lead2 = max(BOT_MIN_LEAD, (v * AIR_TIME - h2.y * CELL) / 2.0)` and `lead = clamp(lead, BOT_MIN_LEAD, max(BOT_MIN_LEAD, after - lead2))`, so it lands early enough to take off for the next hole. Jump when `to_hole <= span - lead`.
 - The bot never fails (the selftest proves it on 20 seeds per difficulty), so it **wins**, and because the round ends by distance, it calls `finish(score, true)` at t = 40.0 s, i.e. about **40.6 s of game time** (about frame 2440 of the 3600 the gate allows; difficulty 1: about 33.8 s). Not randomised, so `check.sh` cannot flake on time.
 - It collects every orb on its path (orbs are on the runs it must stand on) and passes every wall, so `streak` climbs and the shift pitch rises audibly.
 - Shots: frame 240 (4.0 s, t = 3.4 s, dist about 975, cell 12): the player is cyan (phased into world B at about t = 2.1 s) on the first cyan run, violet outlines and the grey start platform visible, score about 50-120. Frame 900 (15.0 s, t = 14.4 s, dist about 4450, cell 55): zone 1, at least one hole visible on screen or just passed, score above 300, three lives, progress bar about 30%.

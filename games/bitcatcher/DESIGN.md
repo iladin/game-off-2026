@@ -93,7 +93,7 @@ Screen map (1280 x 720):
   - Lives: 3 squares 20 x 20 at y 66-86, centres x 608 / 640 / 672: ACCENT alive, 2 px DIM outline when lost (BAD fill 0.4 s right after).
   - Target row (T-0010): y 132-176, one 44 x 44 cell per column at `col_x(c)`, showing the byte to build: target 0 = faint TRACE square, target 1 not yet set = pulsing lime (ACCENT) outline, set = solid lime square with a BG `1`. It shifts with the register.
   - Byte progress: 8 drawn squares 20 x 20, centred at y 102, pitch 32 (no digits): finished bytes filled GOOD, the rest PANEL with a 2 px DIM outline. The newest square squashes 1.25x on byte complete. R0007: replaces the old `11110000` digit string.
-  - Banner 40 px ACCENT centred at x 340, baseline y 56 (T-0018: in the HUD row left of the score, x about 240-440; clear of the corners, the target row y 132-176, the fall zone y 180-440 and the register, so it never draws over the bit or its lane), 1.2 s, fades over the last 0.3 s.
+  - Banner 40 px ACCENT centred at x 340, baseline y 56 (T-0018, `bits_draw.gd` draws it at baseline y 56, x clamped to 170..1090 by its width; in the HUD row left of the score, x about 240-440; clear of the corners, the target row y 132-176, the fall zone y 180-440 and the register, so it never draws over the bit or its lane), 1.2 s, fades over the last 0.3 s.
 - No READY text, no other instructions. The only words ever on screen: the banners and the popups below.
 
 ## Sound (Synth presets/tones/loop used, per studio/VISION.md)
@@ -114,7 +114,7 @@ Screen map (1280 x 720):
 ## Juice list
 1. **Every shift:** the row slides 112 px with the wrap copy (0.10 s), the pressed pad drops 6 px and fills ACCENT for 0.1 s; same frame as the `shift` sound.
 2. **SET:** the cell squashes 1.25x then back over 0.12 s; `Juice.burst(self, cell_centre, ACCENT)` (14); `Juice.popup(self, cell_centre - Vector2(0, 70), "+%d" % pts, GOOD)`.
-3. **Byte complete:** only the 8 cells flash, white at alpha 0.15 for 0.15 s (no full-screen flash; BG and PANEL stay put so the digits stay readable), `Juice.shake(4)`, popup `BYTE` 40 px GOOD at (640, 400); the new byte digit in the HUD squashes 1.25x. Then the new target's sockets pop in (outline scale 0.6 to 1.0, ease out back, 0.2 s).
+3. **Byte complete:** only the 8 cells flash, white at alpha 0.15 for 0.15 s (no full-screen flash; BG and PANEL stay put so the digits stay readable), `Juice.shake(4)`, popup `BYTE` 40 px GOOD at (640, 400); the newest byte-progress square in the HUD (the one just filled, index `bytes_done - 1`) squashes 1.25x then back over 0.12 s (`fx.byte_squash_t`). Then the new target's sockets pop in (outline scale 0.6 to 1.0, ease out back, 0.2 s).
 4. **Fast drop:** ghost trail on the bit; on landing a 2 px INK ring around the cell for 0.1 s and `Juice.shake(4)` only if it was a SET.
 5. **Soft fail (LOST BIT):** the cell outline BAD 0.2 s, `Juice.shake(4)`, popup `LOST BIT` BAD, the 0 tile tinted BAD 0.2 s.
 6. **Hard fail (WRONG after grace):** `Juice.flash(Color(BAD, 0.35), 0.2)`, `Juice.shake(14)`, `Juice.hitstop(0.06)`, `Juice.burst(self, cell_centre, BAD)`; popup `WRONG` BAD; the lost life square flashes BAD 0.4 s; music silent 0.5 s.
