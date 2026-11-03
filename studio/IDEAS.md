@@ -34,6 +34,7 @@ The Creative Director draws the slate from here at kickoff (or invents better). 
 
 ## In progress
 <!-- slug | Title | genre | since R#### -->
+- shapeshifter | Shapeshifter | reflex tunnel dodger | since R0001 (DESIGN.md + scaffold; not built yet)
 
 ## Shipped
 <!-- slug | Title | genre | date | R#### -->
