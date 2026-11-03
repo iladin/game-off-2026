@@ -112,7 +112,7 @@ func _popup_pos(p: Vector2) -> Vector2:
 
 # Same shape as Juice.popup (shared/ is read-only for this game) but holds full alpha longer
 # and uses a thicker outline so it reads against the grid. Sizes and rise come from Rules.
-func _popup(pos: Vector2, text: String, color: Color) -> void:
+func _popup(pos: Vector2, text: String, color: Color, hold: float = R.POPUP_FADE_DELAY, life: float = R.POPUP_LIFE) -> void:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", int(R.POPUP_SIZE))
@@ -126,8 +126,8 @@ func _popup(pos: Vector2, text: String, color: Color) -> void:
 	label.z_index = 50
 	add_child(label)
 	var t := label.create_tween().set_parallel(true)
-	t.tween_property(label, "position:y", label.position.y - R.POPUP_RISE, R.POPUP_LIFE).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	t.tween_property(label, "modulate:a", 0.0, R.POPUP_LIFE - R.POPUP_FADE_DELAY).set_delay(R.POPUP_FADE_DELAY)
+	t.tween_property(label, "position:y", label.position.y - R.POPUP_RISE, life).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	t.tween_property(label, "modulate:a", 0.0, life - hold).set_delay(hold)
 	t.chain().tween_callback(label.queue_free)
 
 
@@ -352,7 +352,7 @@ func _on_events(ev: int, streak_before: int) -> bool:
 			tint_t = 0.2
 			Juice.shake(4.0)
 			Synth.sfx("miss", rng.randf_range(0.92, 1.08))
-			_popup(_popup_pos(Vector2(R.SHIP_X, run.ship_y - 40.0)), "DODGE", D.INK)  # INK, not DIM: DIM is too dark on the black outline
+			_popup(_popup_pos(R.dodge_pos(run.ship_y, run.crash_pos)), "DODGE", D.INK, R.DODGE_HOLD, R.DODGE_LIFE)  # INK, not DIM: DIM is too dark on the black outline
 		else:
 			lives -= 1
 			life_flash_t = 0.4

@@ -21,6 +21,8 @@ const POPUP_RISE := 70.0
 const POPUP_LIFE := 0.9
 const POPUP_FADE_DELAY := 0.55  # full alpha until here, then fade over the rest
 const HUD_BOTTOM := 64.0
+const DODGE_HOLD := 0.7  # DODGE popup stays full INK this long (read window), then fades
+const DODGE_LIFE := 1.1
 const STAGGER_TIME := 0.3  # popups this close in time AND space would overlap: later ones drop down
 const STAGGER_DIST := 40.0
 const STAGGER_DY := 46.0  # label line height at 36 px plus outline, so stacked labels do not touch
@@ -270,6 +272,16 @@ static func step(s: Run, dt: float, r: float, move: float, rng: RandomNumberGene
 			alive.append(e)
 	s.enemies = alive
 	return ev
+
+
+## Where the DODGE popup goes: just above the midpoint of the ship and the crash point, clamped.
+static func dodge_pos(ship_y: float, crash: Vector2) -> Vector2:
+	return popup_pos(Vector2(crash.x, (ship_y + crash.y) * 0.5 - 40.0))
+
+
+## Alpha of a popup with the given hold/life after `age` seconds: 1.0 through the hold, then linear fade.
+static func popup_alpha(age: float, hold: float, life: float) -> float:
+	return clampf(1.0 - (age - hold) / maxf(life - hold, 0.001), 0.0, 1.0)
 
 
 ## Rise of a popup after `age` seconds: Juice's ease-out cubic over POPUP_LIFE, up to POPUP_RISE.
