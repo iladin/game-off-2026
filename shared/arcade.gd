@@ -27,6 +27,10 @@ const TOUR_SECONDS := 3.0
 const GauntletRules := preload("res://shared/gauntlet_rules.gd")
 const OVERFLOW_SLUG := "overflow"
 const GOOD := Color("ffd34d")
+const CARD_TIME := 0.6 ## gauntlet interstitial card
+const CARD_FLIP_AT := 0.28
+const CARD_WORD_SIZE := 96
+const REG_STEP := 0.11 ## result register: seconds between carry steps
 
 ## Hub games in order: [{slug, title, tagline, controls, accent: Color, ...game.json}]
 var games: Array[Dictionary] = []
@@ -53,6 +57,18 @@ var _gauntlet: Dictionary = {}
 var _gauntlet_game: MicroGame = null
 var _gauntlet_label: Label
 var _gauntlet_lives: Control
+var _slot_live: bool = false
+var _slot_playable: bool = false
+var _card: Control
+var _card_t: float = -1.0
+var _card_info: Dictionary = {}
+var _card_idx: int = 0
+var _card_flipped: bool = false
+var _reg: Control
+var _reg_t: float = -1.0
+var _reg_passed: int = 0
+var _reg_n: int = 8
+var _reg_won: bool = false
 var _font: Font = ThemeDB.fallback_font
 
 
@@ -84,6 +100,10 @@ func boot() -> void:
 	print("ARCADE boot games=%d args=%s" % [games.size(), _args])
 	if _args.has("gauntlet"):
 		start_gauntlet()
+	elif _args.has("resultdemo"):
+		_fade.color.a = 0.0
+		_reg_passed = games.size()
+		_show_result(OVERFLOW_SLUG, 1234, true, true)
 	elif _args.has("game"):
 		launch(String(_args["game"]))
 	elif _args.has("tour"):
@@ -137,6 +157,9 @@ func to_hub() -> void:
 	_gauntlet_game = null
 	_gauntlet_label.visible = false
 	_gauntlet_lives.visible = false
+	_card.visible = false
+	_card_t = -1.0
+	_reg_t = -1.0
 	await _fade_out()
 	var scene: PackedScene = load(HUB_SCENE)
 	_swap(scene.instantiate())
@@ -194,6 +217,17 @@ func _gauntlet_next() -> void:
 	await _fade_out()
 	if _gauntlet.is_empty():
 		return # left for the hub meanwhile
+	_swap(Node.new()) # clear the previous game behind the card
+	_gauntlet_label.visible = false
+	_gauntlet_lives.visible = false
+	_back_btn.visible = true
+	_card_start(i)
+	await _fade_in()
+	await get_tree().create_timer(CARD_TIME).timeout
+	_card_t = -1.0
+	_card.visible = false
+	if _gauntlet.is_empty():
+		return
 	var node: Node = (load("res://games/%s/game.tscn" % slug) as PackedScene).instantiate()
 	var g: MicroGame = node as MicroGame
 	if g == null:
@@ -205,6 +239,9 @@ func _gauntlet_next() -> void:
 	g.autoplay = autoplay
 	g.difficulty = GauntletRules.DIFFICULTY
 	g.finished.connect(_on_gauntlet_finished.bind(g))
+	_slot_live = false
+	_slot_playable = false
+	g.playable.connect(func() -> void: _slot_playable = true)
 	_gauntlet_game = g
 	current_slug = OVERFLOW_SLUG
 	_swap(g)
@@ -216,7 +253,6 @@ func _gauntlet_next() -> void:
 	_gauntlet_lives.queue_redraw()
 	print("ARCADE gauntlet game %s %d/%d" % [slug, i + 1, games.size()])
 	g.begin()
-	await _fade_in()
 
 
 func _on_gauntlet_finished(score: int, won: bool, g: MicroGame) -> void:
@@ -233,6 +269,12 @@ func _on_gauntlet_finished(score: int, won: bool, g: MicroGame) -> void:
 func _gauntlet_tick(delta: float) -> void:
 	if _gauntlet.is_empty() or _gauntlet_game == null or get_tree().paused:
 		return
+	if not _slot_live:
+		if _slot_playable or _intro_over(_gauntlet_game):
+			_slot_live = true
+		else:
+			_gauntlet_text_refresh()
+			return
 	var gs: Variant = _gauntlet_game.get("score")
 	var before: int = _gauntlet["index"]
 	_gauntlet = GauntletRules.tick(_gauntlet, delta, int(gs) if gs is int or gs is float else 0)
@@ -245,6 +287,101 @@ func _gauntlet_tick(delta: float) -> void:
 		Synth.sfx("coin")
 		g.process_mode = Node.PROCESS_MODE_DISABLED
 		_gauntlet_next()
+
+
+func _gauntlet_text_refresh() -> void:
+	_gauntlet_label.text = _gauntlet_text()
+
+
+## True when a game exposing `in_intro` / `intro` is past its intro (games without either count from begin()).
+func _intro_over(g: MicroGame) -> bool:
+	var a: Variant = g.get("in_intro")
+	if a is bool:
+		return not a
+	var b: Variant = g.get("intro")
+	if b is float:
+		return b <= 0.0
+	return true
+
+
+func _card_start(i: int) -> void:
+	_card_info = games[i]
+	_card_idx = i
+	_card_t = 0.0
+	_card_flipped = false
+	_card.visible = true
+	_card.queue_redraw()
+
+
+func _draw_card() -> void:
+	if _card_t < 0.0 or _card_info.is_empty():
+		return
+	var acc: Color = _card_info["accent"]
+	var word := String(_card_info.get("sense", _card_info["title"])).to_upper()
+	var a := clampf(_card_t / 0.12, 0.0, 1.0)
+	_card.draw_rect(Rect2(0, 0, 1280, 720), Color("0b0e14"))
+	var sc := 1.0 + 0.25 * (1.0 - a)
+	_card.draw_string(_font, Vector2(0, 360), word, HORIZONTAL_ALIGNMENT_CENTER, 1280, int(CARD_WORD_SIZE * sc), Color(acc, a))
+	# register row: passed slots are 1, this slot flips 0 -> 1
+	var n: int = int(_gauntlet.get("n", games.size())) if not _gauntlet.is_empty() else games.size()
+	var cw := 64.0
+	var x0 := 640.0 - (n * (cw + 12.0) - 12.0) * 0.5
+	for k in n:
+		var r := Rect2(x0 + k * (cw + 12.0), 430, cw, 80)
+		var on := k < _card_idx or (k == _card_idx and _card_t >= CARD_FLIP_AT)
+		var col := acc if k == _card_idx else Color("6b7489")
+		_card.draw_rect(r, Color("151a24"))
+		_card.draw_rect(r, Color(col, 1.0 if k == _card_idx else 0.5), false, 4.0 if k == _card_idx else 2.0)
+		var sq := 1.0
+		if k == _card_idx:
+			var d := absf(_card_t - CARD_FLIP_AT)
+			sq = lerpf(0.4, 1.0, clampf(d / 0.12, 0.0, 1.0))
+		var fs := int(56 * sq)
+		_card.draw_string(_font, Vector2(r.position.x, r.position.y + 58), "1" if on else "0", HORIZONTAL_ALIGNMENT_CENTER, cw, fs, acc if k == _card_idx else Color("e8ecf4"))
+
+
+func _card_tick(delta: float) -> void:
+	if _card_t < 0.0:
+		return
+	_card_t += delta
+	if not _card_flipped and _card_t >= CARD_FLIP_AT:
+		_card_flipped = true
+		Synth.sfx("shift")
+	_card.queue_redraw()
+
+
+func _draw_reg() -> void:
+	if _reg_t < 0.0:
+		return
+	var n := _reg_n
+	var cw := 56.0
+	var gap := 10.0
+	var x0 := 300.0 - (n * (cw + gap) - gap) * 0.5
+	var step := int(floor(_reg_t / REG_STEP)) if _reg_won else -1
+	for k in n:
+		var r := Rect2(x0 + k * (cw + gap), 10, cw, 72)
+		var on := (k < _reg_passed) if not _reg_won else (k < step)
+		var carry := _reg_won and k == step
+		var edge := GOOD if (on or carry) else Color("6b7489")
+		_reg.draw_rect(r, Color(GOOD, 0.35) if carry else Color("151a24"))
+		_reg.draw_rect(r, edge, false, 3.0)
+		_reg.draw_string(_font, Vector2(r.position.x, r.position.y + 54), "1" if on else "0", HORIZONTAL_ALIGNMENT_CENTER, cw, 48, GOOD if on else Color("e8ecf4"))
+
+
+func _reg_tick(delta: float) -> void:
+	if _reg_t < 0.0:
+		return
+	var before := _reg_t
+	_reg_t += delta
+	var s0 := int(floor(before / REG_STEP))
+	var s1 := int(floor(_reg_t / REG_STEP))
+	if _reg_won and s1 != s0 and s1 <= _reg_n:
+		Synth.sfx("shift", 1.0 + 0.04 * s1)
+		if s1 == _reg_n:
+			_result_title.text = "OVERFLOW"
+			_result_title.add_theme_color_override("font_color", GOOD)
+			Synth.sfx("coin")
+	_reg.queue_redraw()
 
 
 func _gauntlet_text() -> String:
@@ -267,13 +404,15 @@ func _gauntlet_end() -> void:
 	var won := GauntletRules.completed(_gauntlet)
 	var new_best := Save.record(OVERFLOW_SLUG, score, won)
 	print("ARCADE gauntlet done score=%d won=%s best=%d" % [score, won, Save.best(OVERFLOW_SLUG)])
+	_reg_passed = int(_gauntlet["passed"])
+	_reg_n = int(_gauntlet["n"])
 	_gauntlet = {}
 	_gauntlet_game = null
 	_gauntlet_label.visible = false
 	_gauntlet_lives.visible = false
 	Synth.stop_loop()
 	Synth.sfx("win" if won else "lose")
-	if autoplay:
+	if autoplay and not _args.has("shotfile"):
 		return
 	_show_result(OVERFLOW_SLUG, score, won, new_best)
 
@@ -387,6 +526,8 @@ func _result_age() -> float:
 
 func _process(delta: float) -> void:
 	_gauntlet_tick(delta)
+	_card_tick(delta)
+	_reg_tick(delta)
 	if _shot_frames < 0:
 		return
 	_frames += 1
@@ -433,6 +574,12 @@ func _build_ui() -> void:
 	_gauntlet_lives.visible = false
 	_gauntlet_lives.draw.connect(_draw_gauntlet_lives)
 	_hud.add_child(_gauntlet_lives)
+	_card = Control.new()
+	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card.visible = false
+	_card.draw.connect(_draw_card)
+	_hud.add_child(_card)
+	_hud.move_child(_card, 0)
 	_mute_btn = _make_button("SOUND ON", Vector2(150, 48))
 	_mute_btn.position = Vector2(1280 - 16 - 150, 12)
 	_hud.add_child(_mute_btn)
@@ -476,6 +623,13 @@ func _build_ui() -> void:
 		to_hub())
 	row.add_child(retry)
 	row.add_child(hub)
+	_reg = Control.new()
+	_reg.custom_minimum_size = Vector2(600, 92)
+	_reg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_reg.visible = false
+	_reg.draw.connect(_draw_reg)
+	box.add_child(_reg)
+	box.move_child(_reg, 1)
 	_result.visible = false
 
 	var fade_layer := CanvasLayer.new()
@@ -496,6 +650,11 @@ func _show_result(slug: String, score: int, won: bool, new_best: bool) -> void:
 	_result_title.add_theme_color_override("font_color", info["accent"])
 	_result_score.text = "%s:  %d" % [info["title"], score]
 	_result_best.text = "NEW BEST!" if new_best else "Best %d" % Save.best(slug)
+	_reg.visible = slug == OVERFLOW_SLUG
+	_reg_t = 0.0 if slug == OVERFLOW_SLUG else -1.0
+	_reg_won = won
+	if slug == OVERFLOW_SLUG and won:
+		_result_title.text = ""
 	_result.visible = true
 	_result.modulate.a = 0.0
 	create_tween().tween_property(_result, "modulate:a", 1.0, 0.2)

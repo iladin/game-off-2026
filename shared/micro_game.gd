@@ -19,6 +19,10 @@ extends Node2D
 ##   for extra per-game data. Never write files directly.
 
 signal finished(score: int, won: bool)
+## Optional: emit (via mark_playable()) on the first frame the player can act, after any intro/"ready" beat.
+## The OVERFLOW gauntlet starts its 8 s slot clock then. Games exposing `in_intro: bool` or `intro: float`
+## are detected without it; other games count from begin().
+signal playable
 
 var slug: String = ""
 var autoplay: bool = false
@@ -38,6 +42,11 @@ func finish(score: int, won: bool) -> void:
 		return
 	_finished = true
 	finished.emit(score, won)
+
+
+## Call when the intro ends and input starts to count (gauntlet slot clock starts here).
+func mark_playable() -> void:
+	playable.emit()
 
 
 func is_finished() -> bool:
