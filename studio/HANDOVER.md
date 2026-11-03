@@ -1,42 +1,33 @@
-# Handover (after R0004, 2026-11-03 00:46 PT)
-Phase: BUILD · Mode: BUILD · Hub: 3 games (Shapeshifter, Gear Grind, Upper Case) · Days to deadline: 28
+# Handover (after R0006, 2026-11-03 03:25 PT)
+Phase: BUILD · Mode: REVIEW (+ one Lane B task) · Hub: 4 games (Shapeshifter, Gear Grind, Upper Case, Bit Catcher) · Days to deadline: 28
 
 ## What this run did
-- **Shipped Upper Case** (0fdfdd8), slot 3. Built by Sonnet from the R0003 design. QA verify: DESIGN items 1-9 PASS, verdict SHIP; autoplay `ARCADE finished uppercase score=2430 won=true`. QA P2s filed as T-0008 and T-0009.
-- **T-0006 Gear Grind layout fixes** (62cb02c): lever label inside the box, TOP label moved out of the needle path, rival mini-map square offset, 160-point tach arcs. QA PASS (TOP label by geometry only; on-screen check is in T-0009).
-- **T-0004 Shapeshifter popup** (531c780): `+N` now spawns at y 220 and ends below the HUD band. QA PASS (frame 270 caught the end of the rise).
-- **T-0005 Shapeshifter hole gap and depth tint** (59494ce): the first QA round FAILED (gap not visible), and the fix round PASSED.
-- **Bit Catcher designed** (0ae44d0), slot 4: DESIGN.md and scaffold, status draft.
-- **Bit Catcher built but NOT committed** (see below).
+- **Took over R0005's stale lock** (since 09:07Z; R0005 never wrapped up). R0005 had committed Bit Catcher (3ea6769, slot 4), T-0008 Upper Case (0ef5096) and the Phase Shift design and scaffold (7d01c9b, draft, slot 5). Its uncommitted IDEAS/LOG/state edits are adopted into this run's bookkeeping, and `shipped` is now 4.
+- **First REVIEW** (`studio/reviews/R0006.md`): Jam Critic (Opus) plus a QA Lead sweep (Sonnet). The findings became 8 BACKLOG items, T-0010 to T-0017. Critic fix 8 (a locked OVERFLOW cell) was folded into T-0003. `last_review_run` = 6.
+- **T-0010 Bit Catcher readability** (58b0db9): lime `1` set cells, a target socket row above the register, the first falling bit visible for about 3 s, and the debug print removed. QA verify PASS on 6/6. Follow-up P2: T-0018 (the banner crosses the fall zone; DESIGN.md is out of date).
 
 ## Build health
-check.sh all: PASS (hub with 3 games, _template, bitcatcher (uncommitted build), geargrind, shapeshifter, uppercase) · registry: ok · CI: unknown (HTTP 404: repo not on GitHub) · push: pending (WSL loop; `git push` fails, no repo/remote)
-
-Environment notes: run `check.sh` in the foreground with `timeout 170` (all 6 targets fit). `shots.sh` play frames take about 25-30 s each, so ask for at most 3-4 per call.
+check.sh all: PASS (hub with 4 games, _template, bitcatcher, geargrind, phaseshift, shapeshifter, uppercase; run in the foreground with `timeout 170`, which fits) · check.sh bitcatcher after T-0010: PASS · registry: ok · CI: unknown (HTTP 404: repo not on GitHub) · push: pending (WSL loop)
 
 ## In flight / uncommitted
-**`games/bitcatcher/`**: the full build is in the working tree, uncommitted, and `game.json` is still `draft`. Changed: DESIGN.md, game.gd, rules.gd and selftest.gd. New: bits_draw.gd, bits_fx.gd and bits_input.gd, with their .uid files. `check.sh bitcatcher` passes.
-- QA round 1 was NO-SHIP for two reasons. The bot won in about 18 s, under VISION's 30-90 s. The shift slide, byte flash, byte squash, socket pop-in and life flash were declared but never triggered.
-- The fix round wired all of those effects (QA confirmed by code read). It also retuned the bot: `BOT_STEP` 0.15, `BOT_REACT` 0.50, and the new `BOT_SLAM_CHANCE` 0.5.
-- **Still failing:** the bot is randomised, and QA saw no finish by frame 3000 in 4 of 4 runs. The finish landed between frames 3000 and 3600, so `check.sh` will flake against the 60 s autoplay limit.
-- **To finish it:**
-  1. Tune the bot only, so the median first finish is about frames 2200-2600, for example `BOT_SLAM_CHANCE` about 0.8 and `BOT_REACT` about 0.3. Rounds must stay at 30 s or more.
-  2. Run headless autoplay 5 times. `$GODOT --headless --path . --fixed-fps 60 --quit-after 3600 -- --game=bitcatcher --autoplay` should finish each time before frame 3300 with won=true.
-  3. QA re-verify: shots in the ZEROS phase (a falling 0, LOST BIT) and a caught row slide, plus the DESIGN checklist.
-  4. Ship it as slot 4 and run `registry.py`.
-- If it can't pass in one run, leave it as is. Don't move it to `.tools/failed`, because it is close.
+Nothing. Phase Shift (`games/phaseshift/`) is committed as a draft: DESIGN.md plus scaffold, not built yet.
 
 ## Scores (latest review)
-No reviews yet. The first REVIEW is due at R0006 (`run_counter - last_review_run >= 6`).
+- Collection: 6.6 (Theme 7.8 is the strongest; Audio 6.3 is the weakest).
+- Shapeshifter: 7.2 (weakest: Innovation 6.0).
+- Gear Grind: 6.8 (weakest: Innovation 5.8).
+- Upper Case: 6.6 (weakest: Audio 6.0).
+- Bit Catcher: 6.3, **below the ship bar** (weakest: Graphics 5.8). T-0010 addressed its biggest readability gap, and T-0011 is the second fix. Re-score it at the next review.
 
 ## Next run should
-1. **Lane A: finish Bit Catcher** (Gameplay Engineer, `games/bitcatcher/` only) as described above. Then QA, and ship it in slot 4.
-2. **Lane B, in parallel: T-0008**, the Upper Case hint glow spill and the lower-case tile over the key strip (`games/uppercase/`).
-3. If time remains: Game Designer for slot 5 per VISION's slate. T-0003 (OVERFLOW) can now be staffed, since 3 games are shipped. It is the Platform Engineer's, touches hub+shared, and is larger.
-4. The R0006 REVIEW is two runs away.
+1. **Lane A: build Phase Shift** (Gameplay Engineer, from `games/phaseshift/DESIGN.md`), then QA verify and ship it as slot 5. That unlocks `min_games` = 5 for OVERFLOW.
+2. **Lane B, in parallel: T-0011** (Bit Catcher progress squares, lane line and calmer byte flash), so Bit Catcher clears the bar. Then T-0012 (the Upper Case glow), T-0013 and T-0014 in P1 order.
+3. Once Phase Shift ships: Game Designer for slot 6 (Cargo Shift), and T-0003 (OVERFLOW) for the Platform Engineer.
+4. The next REVIEW is due at R0012.
 
 ## Needs Daniel
-1. **GitHub isn't set up yet**, so commits stay local, and CI and issues return 404. In WSL: `cd /mnt/c/git/game-off-2026 && bash scripts/setup_github.sh`, then leave `./scripts/push_loop.sh` running. Local `main` now has 11 commits plus this bookkeeping commit that aren't pushed.
-2. **Proposed change to `studio/procedure.md` rule 5 and step 0.7, and the CLAUDE.md "Commands" note** (unchanged since R0001). Background jobs die when a device_bash call returns. Replace the rule with:
+1. **GitHub isn't set up yet**, so commits stay local and CI and issues return 404. In WSL: `cd /mnt/c/git/game-off-2026 && bash scripts/setup_github.sh`, then leave `./scripts/push_loop.sh` running.
+2. **Proposed change to `studio/procedure.md` rule 5 and step 0.7, and to the CLAUDE.md "Commands" note** (unchanged since R0001). Background jobs die when a device_bash call returns. Replace the rule with:
    > **Long commands.** `device_bash` calls time out at 180 s and background jobs are killed when the call returns. Run `check.sh` in the foreground with `timeout 170` (device_bash `timeout_ms: 180000`); when `all` would take longer, run `check.sh hub` and then `check.sh <slug>...` in batches across calls. Exports and downloads the same way, in steps.
-3. A hands-on playtest of the 3 hub games with keys and touch would help. Upper Case's Left Shift vs Right Shift detection (`InputEventKey.location`) has never run in a real browser; F and J are the fallbacks.
+3. **Git leaves temp and lock files.** Commits print `unable to unlink .git/objects/.../tmp_obj_*` warnings, because the sandbox can't delete. `git_unlock.sh` handles the `.lock` files, but `tmp_obj_*` files pile up under `.git/objects`. Running `git gc` or `git prune` from WSL now and then cleans them up.
+4. A hands-on playtest of the 4 hub games with keys and touch would help. Upper Case's Left Shift vs Right Shift detection has never run in a real browser.

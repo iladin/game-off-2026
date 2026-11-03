@@ -34,12 +34,13 @@ The Creative Director draws the slate from here at kickoff (or invents better). 
 
 ## In progress
 <!-- slug | Title | genre | since R#### -->
-- bitcatcher | Bit Catcher | falling-bit puzzle | since R0004 (designed R0004; built R0004 but uncommitted: QA NO-SHIP, bot finish too close to the 60 s gate, see HANDOVER)
+- phaseshift | Phase Shift | auto-runner | since R0005 (2026-11-03: designed R0005, scaffold only, status draft, slot 5)
 
 ## Shipped
 - shapeshifter | Shapeshifter | reflex | shipped R0003 (2026-11-03), slot 1
 - geargrind | Gear Grind | timing racer | shipped R0003 (2026-11-03), slot 2
 - uppercase | Upper Case | rhythm typing | shipped R0004 (2026-11-03), slot 3
+- bitcatcher | Bit Catcher | falling-bit puzzle | shipped R0005 (2026-11-03), slot 4 (3ea6769)
 <!-- slug | Title | genre | date | R#### -->
 - shapeshifter | Shapeshifter | reflex tunnel dodger | 2026-11-02 | R0003 (814c637)
 - geargrind | Gear Grind | timing drag racer | 2026-11-02 | R0003 (00e4e95)
