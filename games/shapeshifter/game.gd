@@ -2,6 +2,8 @@ extends MicroGame
 ## Shapeshifter: become the shape of the hole before the wall reaches you.
 ## Left/Up/Right (A/W/D) or the three bottom buttons = circle/triangle/square.
 
+# popup spawns this far above VP; it rises 70 and its label is 32 tall, so top stays below the HUD band (y 110)
+const POPUP_RISE_Y: float = 80.0
 const Rules := preload("res://games/shapeshifter/rules.gd")
 const TD := preload("res://games/shapeshifter/tunnel_draw.gd")
 
@@ -234,7 +236,7 @@ func _pass(w: Wall) -> void:
 	w.out_t = 0.0
 	Synth.sfx("coin", pow(2.0, mini(streak, 12) / 12.0))
 	Juice.burst(self, TD.VP, TD.ACCENT)
-	Juice.popup(self, TD.VP - Vector2(0, 150), "+%d" % pts, TD.GOOD)
+	Juice.popup(self, TD.VP - Vector2(0, POPUP_RISE_Y), "+%d" % pts, TD.GOOD)
 	if streak % Rules.MULT_EVERY == 0 and Rules.multiplier(streak) < Rules.MULT_MAX + 1 and streak <= Rules.MULT_EVERY * (Rules.MULT_MAX - 1):
 		Juice.flash(Color(1, 1, 1, 0.15), 0.1)
 		Juice.popup(self, TD.VP + Vector2(0, 170), "X%d" % Rules.multiplier(streak), TD.GOOD)
