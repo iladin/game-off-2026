@@ -99,7 +99,10 @@ func _init() -> void:
 		var b := R.sim_round(sd, 1)
 		if b["capsizes"] != 0 or not b["won"] or b["max_tilt"] >= 0.3 or b["waves"] != 15:
 			f.append("bot d1 seed %d: %s" % [sd, str(b)])
-		var c := R.sim_round(sd, 0, true)
+		var t6: Array = []
+		var c := R.sim_round(sd, 0, true, t6)
+		if t6.is_empty() or absf(t6[0]) < deg_to_rad(8.0) or absf(t6[0]) >= R.CAPSIZE - 0.1 or c["first_capsize"] < R.GRACE_END:
+			f.append("idle list at 6 s (>= 8 deg, no capsize in first 10 s) seed %d: %s %s" % [sd, str(t6), str(c)])
 		if c["capsizes"] < 1 or c["first_capsize"] < 10.0:
 			f.append("idle seed %d: %s" % [sd, str(c)])
 	var gp := (72.0 + R.CRATE_GAP_PX) / 264.0

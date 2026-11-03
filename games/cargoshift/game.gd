@@ -59,6 +59,7 @@ var banner_t: float = 0.0
 var last_phase_name: String = ""
 var loop_restart_t: float = -1.0
 var capsizes_total: int = 0
+var list_side: int = 1
 var loop_started: bool = false
 var font: Font = ThemeDB.fallback_font
 
@@ -95,6 +96,7 @@ func begin() -> void:
 	last_phase_name = ""
 	loop_restart_t = -1.0
 	capsizes_total = 0
+	list_side = rng.randi_range(0, 1) * 2 - 1
 	loop_started = false
 	next_wave_t = maxf(0.0, R.WAVES_AT - (R.DIFFICULTY_OFFSET if difficulty >= 1 else 0.0))
 	if R.ramp_time(0.0, difficulty) >= R.CRATE3_AT:
@@ -187,7 +189,7 @@ func _process(delta: float) -> void:
 		dir = _key_dir()
 		if dir == 0 and ptr_down:
 			dir = R.pointer_dir(ptr_pos, ptr_drag, _ballast_pos().x)
-	var ev := R.step(ship, delta, dir, R.swell(r, t) + R.wave_torque(waves, t))
+	var ev := R.step(ship, delta, dir, R.swell(r, t) + R.wave_torque(waves, t) + R.list_torque(t, list_side, difficulty))
 	_on_events(ev, r)
 	if is_finished():
 		return
@@ -258,7 +260,8 @@ func _on_events(ev: int, r: float) -> void:
 		thud_i = ship.thud_i
 		Synth.sfx("miss", rng.randf_range(0.92, 1.08))
 		Juice.shake(SHAKE_SOFT)
-		var cp := D.PIVOT + Vector2(ship.cargo[thud_i] * D.DECK_RANGE, -56.0).rotated(ship.tilt)
+		var sp := R.spread_cargo(ship.cargo, (D.CRATE_SIZE + R.CRATE_GAP_PX) / D.DECK_RANGE)
+		var cp := D.PIVOT + Vector2(sp[thud_i] * D.DECK_RANGE, -56.0).rotated(ship.tilt)
 		Juice.burst(self, cp, D.INK, 6, 120.0)
 	if ev & R.EV_CAPSIZE:
 		_capsize(r)
