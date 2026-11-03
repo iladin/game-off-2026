@@ -111,6 +111,11 @@ func _init() -> void:
 	_t(R.BRAKE_RECT.size.x >= 96 and R.BRAKE_RECT.size.y >= 96 and R.BOOST_RECT.size.x >= 96 and R.BOOST_RECT.size.y >= 96, "pads 96")
 	_t(R.BRAKE_RECT.position.x > 150 and R.BOOST_RECT.end.x <= 1280 and R.BRAKE_RECT.position.y > 70, "pads clear corners")
 	_t(R.follow_dir(100, 340) == -1.0 and R.follow_dir(343, 340) == 0.0, "follow_dir")
+	for py in [-50.0, 0.0, 70.0, 102.0, 168.0, 400.0]:
+		var pp := R.popup_pos(Vector2(0, py))
+		_t(pp.y - R.POPUP_SIZE - R.POPUP_RISE >= R.HUD_BOTTOM, "popup top clear of HUD y=%s" % py)
+		_t(pp.x == R.POPUP_MIN_X and R.popup_pos(Vector2(2000, py)).x == R.POPUP_MAX_X, "popup x clamp")
+	_t(R.popup_pos(Vector2(500, 400)) == Vector2(500, 400), "popup unclamped passthrough")
 	for f in fails:
 		printerr("SELFTEST FAIL: " + f)
 	if fails.is_empty():
