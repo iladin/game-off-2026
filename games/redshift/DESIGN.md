@@ -60,6 +60,7 @@ Round time `t` counts from the loop start. Ramp time `r = Rules.ramp_time(t, dif
 - `enemy_speed(r) = min(SPEED_MAX 260, SPEED_START 150 + SPEED_RAMP 3.5 * r)`. An enemy moves left by `enemy_speed(r) * s.k * (HEAVY_SLOW 0.8 if heavy else 1.0) * dt`, where `s.k` is the ship's eased speed factor (below). From spawn to the ship (1080 px) takes 7.2 s at the start, 4.2 s at r 30 lime, 3.2 s when boosting blue.
 - `spawn_gap(r) = max(GAP_MIN 0.85, GAP_START 1.6 - GAP_RAMP 0.02 * r)`. First spawn at `t = FIRST_SPAWN 0.5`. Spawn: `x = SPAWN_X 1320`, `y = rng.randf_range(ENEMY_Y_MIN 130, ENEMY_Y_MAX 550)`, `band = spawn_bands(r)[rng.randi() % n]`, `heavy = r >= HEAVY_AT 30 and rng.randf() < HEAVY_CHANCE 0.25`.
 - `SPEED_MUL = [0.75, 1.0, 1.3]` (ember, lime, blue). `s.k` eases toward `SPEED_MUL[band]`: `k += (target - k) * min(1, K_EASE 4.0 * dt)` (about 0.5 s to settle; the star field shows it).
+- **Formations (T-0032, in `game.gd` `_form_up()`, not in `rules.gd`):** each spawn event (detected as `spawn_t - dt <= 0` before `step`; the new enemy is the one not in the pre-step list; if it was shot the very frame it appeared, no formation that event) of `Rules.step` is turned into `FORM_SIZE 3` enemies of ONE hue, `FORM_DY 70` px apart: either a **V** (leader in front at `SPAWN_X`, two wingmen `FORM_DX 60` px behind it at y -70 / +70) or a **vertical line** (same x, y -70 / 0 / +70); 50/50 by `rng`. The leader's y is clamped to `ENEMY_Y_MIN + 74 .. ENEMY_Y_MAX - 74` so the whole formation fits the playfield. The leader keeps the `Rules` roll for `heavy` (25% from r 30); wingmen are never heavy (1 hp), so a heavy leads two normal enemies. Hue: lime only before `RED_AT`; from then on each formation's hue **differs from the previous formation's** (random among the other unlocked bands), so hues mix across consecutive formations. After a formation, `run.spawn_t = spawn_gap(r) * FORM_GAP_MUL 1.6` (GAP_START stays 1.6; formations come every about 2.6 s at r 0, 1.4 s at the clamp), about 1.2 enemies per second on screen-time versus 0.6 before; the first 10 s has no more than 3 lime in a row.
 - `hints_on(r)`: `r < HINTS_END 30`. `is_grace(r)`: `r < GRACE_END 10`. Banners show when `phase_name(r)` differs from the last shown (start `""`), so difficulty 1 shows `HEAVY` at once.
 
 ### Simulated balance (Python model of this exact step, dt 1/60, seeds 1-20)
@@ -190,7 +191,7 @@ In the model it never crashes at difficulty 0 or 1 (seeds 1-20), kills 42-55 ene
 10. **Touch:** a tap at (1160, 650) boosts (shift sound, ship turns blue, loop restarts higher); a press and drag at x 400 from y 340 to y 200 moves the ship up at the key speed; a tap on the HUB or SOUND button does neither.
 
 ## Out of scope
-- A scrolling level, terrain, bosses, level data or scripted waves (enemies are single random spawns).
+- A scrolling level, terrain, bosses, level data or scripted waves (formations of 3 are random V / line shapes, not scripted waves).
 - Enemy bullets, power-ups, bombs, weapon upgrades, a shield meter.
 - Continuous speed (exactly 3 bands), horizontal ship movement, any physics.
 - Hue-shifting enemies (a possible later polish task, not in this build).
@@ -199,3 +200,5 @@ In the model it never crashes at difficulty 0 or 1 (seeds 1-20), kills 42-55 ene
 
 ## QA
 Autoplay seeds its RNG with `QA_SEED = 7` (`game.gd`), so autoplay rounds are repeatable; `-- --seed=N` overrides it. `./scripts/shots.sh redshift 2550` shows a blue heavy (1.5x, 3 hp squares) at the top right.
+
+Formations: autoplay bot (seeds 1, 2, 3, 7) wins every round, scores about 2,600-2,830 at difficulty 0 (the rules.gd `sim_round` model and its numbers above predate formations: they model single spawns). `./scripts/shots.sh redshift 1200` shows a lime line of 3 plus the next formation entering at the right.

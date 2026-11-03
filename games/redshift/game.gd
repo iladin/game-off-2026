@@ -12,6 +12,11 @@ const LOOP_BPM := 150.0
 const LOOP_RESTART := 0.5
 const STAR_COUNT := 36
 const QA_SEED := 7
+const FORM_SIZE := 3  # enemies released per spawn event
+const FORM_DX := 60.0  # V wings sit this far behind the leader
+const FORM_DY := 70.0  # vertical spacing inside a formation
+const FORM_GAP_MUL := 1.6  # a formation of 3 is followed by a longer pause
+const FORM_HALF := FORM_DY + 4.0  # keeps the whole formation inside the playfield
 
 var rng := RandomNumberGenerator.new()
 var run: R.Run = R.Run.new()
@@ -44,6 +49,7 @@ var pad_dead: Array[bool] = [false, false]
 var tick_t: float = 0.0
 var thud_t: float = 0.0
 var band_col_now: Color = D.BAND_COL[1]
+var form_band: int = -1
 
 
 func begin() -> void:
@@ -85,6 +91,7 @@ func begin() -> void:
 	tick_t = 0.0
 	thud_t = 0.0
 	band_col_now = D.BAND_COL[run.band]
+	form_band = -1
 	Synth.stop_loop()
 	Synth.sfx("blip")
 
@@ -120,7 +127,11 @@ func _process(dt: float) -> void:
 		if move == 0.0 and ptr_down:
 			move = R.follow_dir(ptr_y, run.ship_y)
 	var sb := run.streak
+	var spawning := run.spawn_t - dt <= 0.0  # Rules.step spawns exactly when this holds
+	var before := run.enemies.duplicate()
 	var ev := R.step(run, dt, r, move, rng)
+	if spawning:
+		_form_up(before)
 	if _on_events(ev, sb):
 		return
 	if t >= R.ROUND_TIME:
@@ -144,6 +155,34 @@ func _process(dt: float) -> void:
 			banner_text = ph
 			banner_t = BANNER_TIME
 			Synth.sfx("blip", 1.5)
+
+
+## Rules.step releases one enemy per spawn event; turn it into a formation of FORM_SIZE
+## of one hue: a V (leader in front) or a vertical line, FORM_DY px apart. After RED_AT
+## the hue differs from the previous formation. Only the leader can be heavy.
+func _form_up(before: Array) -> void:
+	run.spawn_t = R.spawn_gap(r) * FORM_GAP_MUL
+	var lead: R.Enemy = null
+	for e in run.enemies:
+		if not before.has(e):
+			lead = e
+	if lead == null:  # the new enemy was shot the frame it appeared: no formation
+		return
+	var bands := R.spawn_bands(r)
+	if bands.size() > 1 and form_band >= 0:
+		bands = bands.filter(func(b): return b != form_band)
+	lead.band = bands[rng.randi() % bands.size()]
+	form_band = lead.band
+	lead.pos.y = clampf(lead.pos.y, R.ENEMY_Y_MIN + FORM_HALF, R.ENEMY_Y_MAX - FORM_HALF)
+	var line := rng.randf() < 0.5
+	for i in FORM_SIZE - 1:
+		var w := R.Enemy.new()
+		var sgn := -1.0 if i == 0 else 1.0
+		w.band = lead.band
+		w.hp = 1
+		w.radius = R.ENEMY_R
+		w.pos = Vector2(lead.pos.x if line else lead.pos.x + FORM_DX, lead.pos.y + sgn * FORM_DY)
+		run.enemies.append(w)
 
 
 func _tick_fx(dt: float) -> void:
