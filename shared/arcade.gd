@@ -9,7 +9,15 @@ extends Node
 ##   --tour                 attract mode: autoplay every hub game in turn, return to hub between
 ##   --hubdemo=<n>          debug: the hub shows n (0 to 8) placeholder games, every other one cleared; no Save, no registry, launching only plays `select`
 ##   --gauntlet             boot straight into the OVERFLOW gauntlet (combine with --autoplay for a bot run)
+##   --difficulty=<n>       QA, single-game launches only: sets MicroGame.difficulty (0 = normal)
+##   --rstart=<seconds>     QA, single-game launches only: sets MicroGame.qa_ramp, so the round starts that many
+##                          seconds into the game's difficulty ramp (Gear Grind: 40 = fifth gear/redline/BLOWN)
 ##   --shotfile=<png>       save a screenshot after --shotframes=<n> frames (default 180), then quit
+##
+## QA late-round flags: `--game=<slug> --autoplay --difficulty=1 --rstart=40`. Ignored on the web, in the gauntlet and
+## the tour; absent flags change nothing. scripts/shots.sh cannot pass extra args, so the same flags may also come from
+## the environment (desktop only): `SHIFT_QA="--rstart=40" ./scripts/shots.sh geargrind`.
+## Games opt in by adding `qa_ramp` to their ramp clock (see MicroGame.qa_ramp).
 ##
 ## OVERFLOW gauntlet (additive): `Arcade.start_gauntlet()` runs every hub game in slot order at difficulty 1,
 ## 8 s each, 3 lives (shared/gauntlet_rules.gd), records the sum under slug "overflow" and shows one result card.
@@ -76,6 +84,11 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_args = parse_args(OS.get_cmdline_user_args())
 	autoplay = _args.has("autoplay") or _args.has("tour")
+	if not OS.has_feature("web"):
+		var qa := parse_args(OS.get_environment("SHIFT_QA").split(" ", false))
+		for k in ["difficulty", "rstart"]:
+			if qa.has(k) and not _args.has(k):
+				_args[k] = qa[k]
 	if _args.has("hubdemo"):
 		var hd := String(_args["hubdemo"])
 		hubdemo = clampi(int(hd) if hd.is_valid_int() else 8, 0, 8)
@@ -183,13 +196,18 @@ func launch(slug: String) -> void:
 	var g: MicroGame = node
 	g.slug = slug
 	g.autoplay = autoplay
+	if not OS.has_feature("web") and not _args.has("tour"):
+		if String(_args.get("difficulty", "")).is_valid_int():
+			g.difficulty = maxi(0, int(_args["difficulty"]))
+		if String(_args.get("rstart", "")).is_valid_float():
+			g.qa_ramp = maxf(0.0, float(_args["rstart"]))
 	g.finished.connect(_on_finished.bind(g))
 	current_slug = slug
 	_game = g
 	_swap(g)
 	_result.visible = false
 	_back_btn.visible = true
-	print("ARCADE launch %s autoplay=%s" % [slug, autoplay])
+	print("ARCADE launch %s autoplay=%s difficulty=%d qa_ramp=%.1f" % [slug, autoplay, g.difficulty, g.qa_ramp])
 	g.begin()
 	await _fade_in()
 

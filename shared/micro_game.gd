@@ -28,6 +28,9 @@ var slug: String = ""
 var autoplay: bool = false
 ## 0 = normal. Higher values are for remixes / the finale; ignore it if unused.
 var difficulty: int = 0
+## QA only (Arcade --rstart=<s>, desktop single-game launches): seconds to add to the game's difficulty-ramp clock so
+## a round starts late in its ramp. 0 = normal. Games opt in: `Rules.ramp_time(elapsed + qa_ramp, difficulty)`.
+var qa_ramp: float = 0.0
 
 var _finished: bool = false
 

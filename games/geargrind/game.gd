@@ -121,7 +121,7 @@ func begin() -> void:
 	win_pop_t = 0.0
 	banner_text = ""
 	banner_t = 0.0
-	last_phase = Rules.phase_name(Rules.ramp_time(0.0, difficulty))
+	last_phase = Rules.phase_name(Rules.ramp_time(qa_ramp, difficulty))
 	engine_t = 0.0
 	engine_skip = false
 	loop_restart_t = -1.0
@@ -129,7 +129,7 @@ func begin() -> void:
 	clock = 0.0
 	go_t = 0.0
 	shifted_once = false
-	heat_r = Rules.ramp_time(0.0, difficulty)
+	heat_r = Rules.ramp_time(qa_ramp, difficulty)
 	gears = Rules.gears_for(heat_r)
 	rival_T = Rules.rival_time(gears, heat_r)
 	Synth.stop_loop()
@@ -145,7 +145,7 @@ func _start_loop() -> void:
 
 func _start_heat() -> void:
 	heat += 1
-	heat_r = Rules.ramp_time(elapsed, difficulty)
+	heat_r = Rules.ramp_time(elapsed + qa_ramp, difficulty)
 	gears = Rules.gears_for(heat_r)
 	rival_T = Rules.rival_time(gears, heat_r)
 	g = 0
