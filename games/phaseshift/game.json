@@ -1,0 +1,11 @@
+{
+  "title": "Phase Shift",
+  "tagline": "Two worlds, one floor. Phase so the ground is there.",
+  "controls": "Space or Up to jump, Shift, Down or X to phase. Touch: right half jump, left half phase",
+  "accent": "#A78BFA",
+  "genre": "auto-runner",
+  "shift": "The phase shift: flip between two overlapping worlds so the platform under you exists and the wall ahead does not.",
+  "sense": "PHASE",
+  "status": "draft",
+  "slot": 5
+}
