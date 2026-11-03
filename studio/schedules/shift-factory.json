@@ -1,15 +1,17 @@
 {
-  "trigger_id": "trig_015C6FrXwYd4iif5ZtMT6YuB",
+  "trigger_id": "trig_011FXUot3ng3duT2PBRUJHdd",
   "name": "SHIFT studio: hourly run (Game Off 2026)",
-  "cron": "48 * * * *",
-  "cron_note": "UTC fields; hourly at :48 (anchored to the creation minute)",
-  "enabled": false,
+  "cron": "6 * * * *",
+  "cron_note": "UTC fields; hourly at :06 (anchored to the creation minute)",
+  "enabled": true,
   "model": "claude-opus-5-5",
   "requires_computer": true,
-  "folders": [],
+  "folders": [
+    "C:\\git\\game-off-2026"
+  ],
   "permission_mode": "auto",
   "notifications": null,
   "prompt_file": "shift-factory.prompt.md",
   "procedure": "studio/procedure.md",
-  "synced_at": "2026-11-03T01:49:06.258668Z"
+  "synced_at": "2026-11-03T03:06:13.758134Z"
 }

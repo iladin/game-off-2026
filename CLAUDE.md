@@ -50,6 +50,7 @@ python3 scripts/registry.py [--check]    # rebuild games/registry.json from game
 node scripts/browser_check.mjs           # boot build/web in headless Chromium, assert no errors, screenshots
 ./scripts/zip_for_itch.sh                # dist/shift-web.zip for itch.io
 ./scripts/serve.sh                       # http://localhost:8000
+bash scripts/git_unlock.sh [--now]       # move aside .lock files git couldn't delete (Claude sandbox on Daniel's PC)
 ```
 `GODOT=/path/to/godot` overrides the binary (default: `.tools/godot`, then `godot` on PATH).
 `check.sh all` takes a few minutes with many games; in a shell with a time limit run it in the background (`nohup ./scripts/check.sh all > .tools/check-all.log 2>&1 &`) and poll the log.

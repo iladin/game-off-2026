@@ -8,7 +8,7 @@ Every Claude scheduled task that works on this repo is defined here as two files
 
 | File | Scheduled task | Schedule | State |
 |---|---|---|---|
-| `shift-factory` | SHIFT studio: hourly run (Game Off 2026) | `48 * * * *` (hourly) | off until setup is done |
+| `shift-factory` | SHIFT studio: hourly run (Game Off 2026) | `6 * * * *` (hourly at :06 UTC) | on |
 
 `python3 scripts/schedules.py show` prints this from the files.
 
@@ -24,6 +24,4 @@ Every Claude scheduled task that works on this repo is defined here as two files
 
 ## Pending
 Changes git describes that the live scheduled task doesn't have yet. Remove each line once applied.
-- Folder: add `C:\git\game-off-2026` to the scheduled task in the Claude desktop app (scheduled task settings) once the repo is there, then set `"folders"` in `shift-factory.json`. (Daniel)
-- Enable: turn the task on after the GitHub setup in `studio/HANDOVER.md` → Needs Daniel, then set `"enabled": true`. (Daniel)
-- Model: the task runs the Producer on `claude-opus-5-5` (the old Game Factory used `claude-sonnet-5-5`). Daniel's call; change it in the app if wanted.
+- Model: the task runs the Producer on `claude-opus-5-5` (the old Game Factory used `claude-sonnet-5-5`). Daniel's call; change it in the app if wanted, then sync `model` here.
