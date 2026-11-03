@@ -9,7 +9,7 @@ const Inp := preload("res://games/bitcatcher/bits_input.gd")
 
 const LIVES := 3
 const INTRO_TIME := 0.6
-const FIRST_SPAWN := 0.3
+const FIRST_SPAWN := 0.1
 const BYTE_PAUSE := 0.5
 const FADE_IN := 0.15
 const PAD_DOWN_TIME := 0.1
@@ -162,7 +162,7 @@ func _spawn(r: float) -> void:
 	bit_age = 0.0
 	bit_alive = true
 	fast = false
-	bot_slam = rng.randf() < BOT_SLAM_CHANCE
+	bot_slam = rng.randf() < BOT_SLAM_CHANCE and not first
 
 
 func _bot(delta: float) -> void:
@@ -266,7 +266,6 @@ func _byte_done(r: float) -> void:
 	Juice.shake(SHAKE_SOFT)
 	Juice.popup(self, Vector2(640, 400), "BYTE", BD.GOOD, 40)
 	if bytes_done >= R.BYTES_TO_WIN:
-		print("BITCATCHER round_frames=", Engine.get_process_frames(), " t=", snappedf(t, 0.1))
 		finish(R.final_score(score, lives), true)
 		return
 	target = R.make_target(R.ones_for(r), target, rng)

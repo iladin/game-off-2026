@@ -52,11 +52,12 @@ static func _cell(ci: CanvasItem, c: int, dx: float, reg: int, target: int, t: f
 	var sock := R.bit_at(target, c) == 1
 	if sc != 1.0:
 		r = Rect2(r.get_center() - r.size * sc * 0.5, r.size * sc)
-	if one and sock:
+	if one:
 		if a > 0.5:
 			glow(ci, r, Color(ACCENT, a))
-		ci.draw_rect(r, Color(ACCENT, a))
-		text(ci, cx, r.position.y + 70.0 * sc, "1", int(56 * sc), Color(BG, a))
+		ci.draw_rect(r, Color(PANEL, a))
+		ci.draw_rect(r, Color(ACCENT, a), false, 4.0)
+		text(ci, cx, r.position.y + 76.0 * sc, "1", int(64 * sc), Color(ACCENT, a))
 	else:
 		ci.draw_rect(r, Color(PANEL, a))
 		ci.draw_rect(r, Color(TRACE, a), false, 2.0)
@@ -66,6 +67,7 @@ static func _cell(ci: CanvasItem, c: int, dx: float, reg: int, target: int, t: f
 				var s := 0.6 + 0.4 * ease_back(pop)
 				sr = Rect2(r.get_center() - r.size * s * 0.5, r.size * s)
 			var al := (0.55 + 0.45 * sin(TAU * 2.0 * t)) * a
+			ci.draw_rect(sr, Color(ACCENT, 0.12 * a))
 			ci.draw_rect(sr, Color(ACCENT, al), false, 4.0)
 			ci.draw_rect(Rect2(r.position.x, r.end.y - 6.0, r.size.x, 6.0), Color(ACCENT, a))
 		text(ci, cx, r.position.y + 66.0 * sc, "0", int(48 * sc), Color(DIM, a))
@@ -121,6 +123,28 @@ static func draw_hint(ci: CanvasItem, col: int, bit_y: float, good: bool, t: flo
 	ci.draw_rect(Rect2(x - 50, R.REG_Y, 100, 100), Color(col_c, 0.5 * pulse + 0.3), false, 6.0)
 
 
+static func draw_target(ci: CanvasItem, reg: int, target: int, t: float, pop: float) -> void:
+	for c in R.CELLS:
+		var x := R.col_x(c)
+		var r := Rect2(x - 22, 132, 44, 44)
+		if R.bit_at(target, c) == 0:
+			ci.draw_rect(r, Color(TRACE, 0.6))
+			continue
+		if R.bit_at(reg, c) == 1:
+			ci.draw_rect(r, ACCENT)
+			text(ci, x, 168, "1", 36, BG)
+			continue
+		var s := 1.0
+		if pop < 1.0:
+			s = 0.6 + 0.4 * ease_back(pop)
+		var q := Rect2(r.get_center() - r.size * s * 0.5, r.size * s)
+		var al := 0.55 + 0.45 * sin(TAU * 2.0 * t)
+		glow(ci, q, Color(ACCENT, 0.6))
+		ci.draw_rect(q, Color(PANEL, 1.0))
+		ci.draw_rect(q, Color(ACCENT, al), false, 4.0)
+		text(ci, x, 168, "0", 30, DIM)
+
+
 static func draw_pads(ci: CanvasItem, pads: Array[Rect2], down: Array[bool]) -> void:
 	for i in 3:
 		var r := pads[i]
@@ -159,7 +183,7 @@ static func draw_hud(ci: CanvasItem, score: int, lives: int, max_lives: int, lif
 			sz = int(28 * byte_squash)
 		text(ci, 640.0 + (i - 3.5) * 22.0, 112, s[i], sz, GOOD if on else DIM)
 	if banner != "" and banner_a > 0.0:
-		text(ci, 640, 168, banner, 40, Color(ACCENT, banner_a))
+		text(ci, 640, 262, banner, 40, Color(ACCENT, banner_a))
 
 
 ## Whole scene for the game node g (reads its state).
@@ -176,6 +200,7 @@ static func draw_scene(g: Node2D) -> void:
 		sq = 1.0 + 0.25 * sin(PI * (1.0 - fx.squash_t / g.SQUASH_TIME))
 	draw_register(g, g.reg, g.target, sp, fx.slide_t, fx.wrap_col, fx.squash_c, sq, fx.byte_flash_t,
 			fx.bad_c, fx.bad_t, fx.pop_t, now)
+	draw_target(g, g.reg, g.target, now, fx.pop_t)
 	if fx.hint_flash_t > 0.0 and int(fx.hint_flash_t / (g.HINT_FLASH_TIME / 4.0)) % 2 == 1:
 		for c in R.CELLS:
 			if R.bit_at(g.target, c) == 1 and R.bit_at(g.reg, c) == 0:
