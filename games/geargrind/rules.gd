@@ -205,3 +205,37 @@ static func popup_slot(prev_slot: int, prev_age: float) -> int:
 
 static func popup_slot_y(base_y: float, slot: int) -> float:
 	return base_y + POP_STEP * float(slot)
+
+
+const POP_MIN_Y := 300.0  # highest birth baseline a popup may take
+const POP_MAX_Y := 505.0  # lowest birth baseline: label descenders stay clear of the tach top (y 520)
+const POP_BASE := 425.0   # preferred birth baseline, tried first
+
+
+## Birth baseline for a new popup, or -1.0 if none is free. live = Vector2(birth_y, age) of
+## each popup younger than POP_LIFE. All popups rise on the same ease-out curve, so a new one
+## stays >= POP_STEP from a live one for its whole life iff it is born at least STEP below that
+## one's birth y, or at least STEP above that one's current y. Candidates go down from
+## POP_BASE in 5 px steps to POP_MAX_Y, then up from POP_BASE to POP_MIN_Y.
+static func popup_pick_y(live: Array) -> float:
+	var c := POP_BASE
+	while c <= POP_MAX_Y:
+		if _pop_ok(c, live):
+			return c
+		c += 5.0
+	c = POP_BASE - 5.0
+	while c >= POP_MIN_Y:
+		if _pop_ok(c, live):
+			return c
+		c -= 5.0
+	return -1.0
+
+
+static func _pop_ok(c: float, live: Array) -> bool:
+	for v in live:
+		var lv := v as Vector2
+		if lv.y >= POP_LIFE:
+			continue
+		if not (c >= lv.x + POP_STEP or c <= popup_y_now(lv.x, lv.y) - POP_STEP):
+			return false
+	return true

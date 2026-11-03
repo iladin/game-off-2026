@@ -40,13 +40,27 @@ func _init() -> void:
 	if Rules.final_score(100, 2) != 200: fails.append("final score")
 	if Rules.popup_slot(-1, 0.0) != 0 or Rules.popup_slot(2, 5.0) != 0 or Rules.popup_slot(1, -1.0) != 0: fails.append("popup slot reset")
 	if Rules.popup_slot(0, 0.3) != 1 or Rules.popup_slot(1, 0.9) != 2 or Rules.popup_slot(2, 0.5) != 0: fails.append("popup slot chain")
-	if Rules.popup_slot_y(520.0, 0) != 520.0 or Rules.popup_slot_y(520.0, 2) != 600.0: fails.append("popup slot y")
-	for slot in [0, 1]:  # successive popups stay a full STEP apart as both keep rising
-		for age in [0.0, 0.1, 0.37, 0.6, 0.9]:
-			var ny := Rules.popup_slot_y(520.0, Rules.popup_slot(slot, age))
-			var py := Rules.popup_slot_y(520.0, slot)
-			for dt in [0.0, 0.1, 0.3, 0.6]:
-				if Rules.popup_y_now(ny, dt) - Rules.popup_y_now(py, age + dt) < Rules.POP_STEP - 0.01: fails.append("popup gap %s %s %s" % [slot, age, dt])
+	for gap in [0.3, 0.2, 0.45, 0.1]:  # bursts of shifts: every live pair stays >= STEP apart, always
+		var pops: Array = []  # Vector2(birth_y, birth_t)
+		for n in 10:
+			var t: float = gap * n
+			var live: Array = []
+			for pp in pops:
+				live.append(Vector2((pp as Vector2).x, t - (pp as Vector2).y))
+			var by := Rules.popup_pick_y(live)
+			if by < 0.0: continue
+			if by > Rules.POP_MAX_Y or by < Rules.POP_MIN_Y: fails.append("popup range %s" % by)
+			pops.append(Vector2(by, t))
+		for pa in pops:
+			for pb in pops:
+				if pa == pb: continue
+				var t0: float = maxf((pa as Vector2).y, (pb as Vector2).y)
+				for k in 40:
+					var tt: float = t0 + 0.025 * k
+					if tt - (pa as Vector2).y >= Rules.POP_LIFE or tt - (pb as Vector2).y >= Rules.POP_LIFE: break
+					var d := absf(Rules.popup_y_now((pa as Vector2).x, tt - (pa as Vector2).y) - Rules.popup_y_now((pb as Vector2).x, tt - (pb as Vector2).y))
+					if d < Rules.POP_STEP - 0.01: fails.append("popup gap gap=%s %s %s t=%s d=%s" % [gap, pa, pb, tt, d])
+	if Rules.popup_pick_y([]) != Rules.POP_BASE: fails.append("popup pick empty")
 	for f in fails:
 		printerr("SELFTEST FAIL: " + f)
 	if fails.is_empty():

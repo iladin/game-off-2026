@@ -92,8 +92,7 @@ var clock: float = 0.0
 var go_t: float = 0.0
 var shifted_once: bool = false
 var dead: bool = false
-var pop_slot: int = -1
-var pop_at: float = -100.0
+var pops: Array = []  # live popups as Vector2(birth_y, birth_elapsed)
 
 
 ## QA only (desktop, never on web): `--sloppy` in the launch args or SHIFT_QA makes the autoplay bot shift late.
@@ -106,8 +105,7 @@ func _qa_sloppy() -> bool:
 func begin() -> void:
 	sloppy = autoplay and _qa_sloppy()
 	elapsed = 0.0
-	pop_at = -100.0
-	pop_slot = -1
+	pops.clear()
 	intro = INTRO_TIME
 	blip2_done = false
 	state = STAGING
@@ -324,9 +322,15 @@ func _shift() -> void:
 	squat_t = SQUAT_TIME
 	digit_t = 0.2
 	var now := elapsed
-	pop_slot = Rules.popup_slot(pop_slot, now - pop_at)
-	var at := Vector2(640, Rules.popup_slot_y(520.0, pop_slot))
-	pop_at = now
+	var live: Array = []
+	for pp in pops:
+		var age: float = now - (pp as Vector2).y
+		if age < Rules.POP_LIFE:
+			live.append(Vector2((pp as Vector2).x, age))
+	pops = pops.filter(func(pp: Vector2) -> bool: return now - pp.y < Rules.POP_LIFE)
+	var at := Vector2(640, Rules.popup_pick_y(live))
+	if at.y > 0.0:
+		pops.append(Vector2(at.y, now))
 	match j:
 		Rules.PERFECT:
 			Synth.sfx("coin", pow(2.0, mini(perfects, 12) / 12.0))
@@ -334,13 +338,13 @@ func _shift() -> void:
 			streak += 1
 			perfects += 1
 			Juice.burst(self, Vector2(300, 418), ACCENT)
-			Juice.popup(self, at, "PERFECT +30", GOOD)
+			_pop(at, "PERFECT +30", GOOD)
 			Juice.shake(SHAKE_SOFT)
 		Rules.GOOD:
 			Synth.sfx("coin", 0.84)
 			streak += 1
 			perfects = 0
-			Juice.popup(self, at, "+15", GOOD)
+			_pop(at, "+15", GOOD)
 		Rules.EARLY:
 			Synth.sfx("miss", randf_range(0.92, 1.08))
 			bog_t = Rules.BOG_TIME
@@ -349,13 +353,18 @@ func _shift() -> void:
 			perfects = 0
 			fail_tint_t = FAIL_TINT_TIME
 			Juice.shake(SHAKE_SOFT)
-			Juice.popup(self, at, "EARLY", BAD)
+			_pop(at, "EARLY", BAD)
 			Juice.burst(self, Vector2(300, 418), DIM, 8, 120.0)
 		_:
 			Synth.sfx("miss", randf_range(0.92, 1.08))
 			streak = 0
 			perfects = 0
-			Juice.popup(self, at, "LATE +5", DIM)
+			_pop(at, "LATE +5", DIM)
+
+
+func _pop(at: Vector2, text: String, col: Color) -> void:
+	if at.y > 0.0:  # no free slot: skip the label rather than overlap a live one
+		Juice.popup(self, at, text, col)
 
 
 func _end_heat(result: int) -> void:
