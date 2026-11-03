@@ -106,7 +106,14 @@ static func draw_creeper(ci: CanvasItem, rc: Rect2, z: float, t: float, feed: in
 			draw_body(ci, rc, z, a(ACCENT, 0.25 * (0.6 + 0.4 * p)), Color(0, 0, 0, 0), 0.0, 1.3)
 			draw_body(ci, rc, z, a(ACCENT, 0.10 * (0.6 + 0.4 * p)), Color(0, 0, 0, 0), 0.0, 1.6)
 		draw_body(ci, rc, z, BG, ACCENT, 4.0)
-	draw_eyes(ci, rc, z, t, feed, 3.0 + 7.0 * z)
+		draw_body(ci, rc, z, Color(0, 0, 0, 0), a(INK, 0.35 + 0.25 * z), 2.0, 0.97)
+		if z >= 0.5 and blink_on(t, feed):
+			var hp := head_pos(rc, z)
+			var sep := 0.066 * BODY.x * body_scale(rc, z)
+			var gr := (3.0 + 13.0 * z) * 2.0
+			ci.draw_circle(hp + Vector2(-sep, 0), gr, a(BAD, 0.25))
+			ci.draw_circle(hp + Vector2(sep, 0), gr, a(BAD, 0.25))
+	draw_eyes(ci, rc, z, t, feed, 3.0 + 13.0 * z)
 
 
 static func draw_static(ci: CanvasItem, rc: Rect2, n: int, w: float, h: float, col: Color) -> void:
@@ -155,6 +162,12 @@ static func draw_thumbs(ci: CanvasItem, font: Font, g) -> void:
 			rc.position.y += 4.0 * sin(PI * (1.0 - g.step_t[i] / 0.1))
 		if g.squash_t > 0.0 and g.squash_feed == i:
 			rc = rc.grow(8.0 * g.squash_t / 0.12)
+		if i == s.watched and not s.awake[i]:
+			draw_hall(ci, rc, i, 0.6)
+			ci.draw_rect(rc, a(BG, 0.88))
+			ci.draw_rect(rc, ACCENT, false, 6.0)
+			ci.draw_string(font, rc.position + Vector2(10, 34), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 32, DIM)
+			continue
 		if not s.awake[i]:
 			ci.draw_rect(rc, PANEL)
 			ci.draw_rect(rc, TRACE, false, 2.0)
@@ -165,7 +178,7 @@ static func draw_thumbs(ci: CanvasItem, font: Font, g) -> void:
 		draw_eyes(ci, rc, s.d[i], g.anim, i, 2.0 + 5.0 * s.d[i])
 		ci.draw_string(font, rc.position + Vector2(10, 34), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 32, DIM)
 		if i == s.watched:
-			ci.draw_rect(rc, a(PANEL, 0.8))
+			ci.draw_rect(rc, a(BG, 0.88))
 			ci.draw_rect(rc, ACCENT, false, 6.0)
 			continue
 		var bc := TRACE.lerp(BAD, clampf((s.d[i] - 0.4) / 0.5, 0.0, 1.0))

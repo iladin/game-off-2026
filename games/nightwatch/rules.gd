@@ -61,6 +61,12 @@ class Watch extends RefCounted:
 	var flash_i: int = 0
 
 
+static func fresh() -> Watch:
+	var s := Watch.new()
+	s.watched = START_FEED
+	return s
+
+
 static func ramp_time(t: float, difficulty: int) -> float:
 	return t + (DIFFICULTY_OFFSET if difficulty >= 1 else 0.0)
 

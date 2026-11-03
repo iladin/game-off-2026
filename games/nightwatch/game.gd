@@ -48,16 +48,17 @@ var jump_t: float = 0.0
 var life_flash_t: float = 0.0
 var loop_restart_t: float = 0.0
 var lamp_blink_t: float = 0.0
+var qa_watch2: bool = "--nwqa" in OS.get_cmdline_user_args()  # QA shots: idle player who looks at CAM 2 at t 8
 
 
 func begin() -> void:
 	rng.randomize()
-	watch = R.Watch.new()
-	watch.watched = R.START_FEED
+	watch = R.fresh()
 	intro = INTRO
 	intro_blip = false
 	t = 0.0
 	r = R.ramp_time(0.0, difficulty)
+	R.step(watch, 0.0, r, rng)  # zero-dt step: wake the opening feeds so the first frame shows their eyes
 	score = 0
 	streak = 0
 	lives = R.LIVES
@@ -111,6 +112,8 @@ func _process(dt: float) -> void:
 					_flash()
 				else:
 					_switch(act)
+	if qa_watch2 and t >= 8.0 and watch.watched != 1:
+		_switch(1)
 	var ev := R.step(watch, dt, r, rng)
 	if _on_events(ev):
 		return
