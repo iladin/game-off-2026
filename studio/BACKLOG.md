@@ -2,38 +2,44 @@
 
 Format: `- [T-####] P0|P1|P2 | role | game-or-area | title` with an indented `accept:` line (one or more testable criteria) and optional `source:` (review, INBOX, #issue).
 P0 = broken or blocks the jam · P1 = clearly hurts a jam score · P2 = polish. The Producer keeps Ready sorted P0 → P2, then oldest first.
-Next id: T-0044
+Next id: T-0049
 
 ## Ready
 - [T-0031] P1 | release-manager | uppercase (web) | Chromium reports Left/Right Shift location
   accept: in the first web build, a headless Chromium check dispatching ShiftLeft and ShiftRight keydowns shows Upper Case registering the left and right Shift (location 1 and 2); if not, the on-screen key labels show the fallback keys (F/J) that work on the web.
   source: R0011 QA T-0009 (finding 3); R0012 Jam Critic fix 3 (raised to P1; do it with the first web export)
+  status R0014: first web export DONE (build/web, wasm 38 MB, pck 306 KB, no warnings); the browser check is BLOCKED: no Chromium on the machine (cdn.playwright.dev and storage.googleapis.com are 403 by the allowlist), and running an npm-bundled Chromium (@sparticuz/chromium) was denied by the permission system. Needs Daniel (see HANDOVER). Code reading: F/J fallback already works and is labeled.
 - [T-0028] P2 | creative-director | hub+VISION | OVERFLOW teaser cell: bless it or hide it
   accept: VISION.md section 2/7/8 and hub/hub.gd agree: either VISION says a dim locked OVERFLOW cell shows from the start (and section 8's cell-span numbers match 9 cells), or a Platform task is filed to hide the cell until `overflow_unlocked()`.
   source: R0011 QA T-0007 (finding 3), T-0021 (finding 3)
-- [T-0025] P2 | platform-engineer | shared | Late-round QA flags for single-game launches
-  accept: a user arg (e.g. `--difficulty=N` and/or `--rstart=<seconds>`) makes a single-game launch start late in its ramp; documented in shared/arcade.gd; `./scripts/shots.sh geargrind` with it reaches fifth gear (shot shows gear 5); hub selftest and `./scripts/check.sh all` PASS.
-  source: R0011 QA T-0007 (finding 1)
-- [T-0026] P2 | qa-lead | geargrind | See fifth gear, redline and BLOWN (after T-0025)
+- [T-0026] P2 | qa-lead | geargrind | See fifth gear, redline and BLOWN (after T-0044; T-0025 done)
   accept: shots show gear 5 with a moved band, the needle in the red with the pulsing red zone and BAD tint, and the BLOWN banner with its red flash (needs T-0025 and a bot option that shifts late); findings filed as tasks.
   source: R0011 QA T-0007 (findings 1, 2)
-- [T-0040] P2 | gameplay-engineer | redshift | Popup rise stays below the HUD
-  accept: a "+N" kill popup never draws inside y < 64 during its rise/fade (raise POPUP_MIN_Y or shorten the rise near the top); a shot of a clamped popup shows no overlap with the progress bar, SOUND or band tiles; check.sh redshift PASS.
-  source: R0013 QA verify T-0038
-- [T-0041] P2 | gameplay-engineer | nightwatch | Stronger danger cues
-  accept: the thumbnail BAD outline and main-view bar never drop below alpha 0.6 in the pulse and sit clear of the accent hint glow (>= 3 px gap); idle shots at ~5 s and ~9 s show both at a glance; check.sh nightwatch PASS.
-  source: R0013 QA verify T-0035
-- [T-0042] P2 | gameplay-engineer | cargoshift | Waterline follows the sea, not the hull
-  accept: the teal waterline is drawn at the world sea level clipped to the hull (stays level while the hull tilts); storm shot shows it level; check.sh cargoshift PASS.
-  source: R0013 QA verify T-0036
-- [T-0043] P2 | platform-engineer | shared (gauntlet) | Cap the gauntlet card word
-  accept: the interstitial card word shrinks to fit within 1100 px (or falls back to the sense word only); a game.json without `sense` still shows a card that fits; check.sh hub PASS.
-  source: R0013 QA verify T-0030
+- [T-0044] P2 | gameplay-engineer | geargrind | QA bot flag that misses shifts (unblocks T-0026)
+  accept: a desktop-only flag (e.g. `--sloppy`, via Arcade args/SHIFT_QA) makes the Gear Grind autoplay bot shift late; with `--rstart=40` a shot shows the needle in the red zone and a later shot the BLOWN banner; no change without the flag; check.sh geargrind PASS.
+  source: R0014 QA verify T-0025
+- [T-0045] P2 | gameplay-engineer | geargrind | "RIVAL AHEAD n m" label clear of the car
+  accept: at close range (gear 5, `SHIFT_QA="--rstart=40" ./scripts/shots.sh geargrind 380`) the rival label doesn't overlap the car or the red text; check.sh geargrind PASS.
+  source: R0014 QA verify T-0025
+- [T-0046] P2 | gameplay-engineer | nightwatch | Thumbnail outline vs creeper eyes; earlier main-view bar?
+  accept: in idle shots at ~5 s and ~9 s the creeper eyes on a thumbnail don't straddle the BAD outline (reads clean, not a glitch); DESIGN.md states when the main-view bar appears (now d > 0.6, ~8 s) or CUE_BAR_D is lowered; check.sh nightwatch PASS.
+  source: R0014 QA verify T-0041
+- [T-0047] P2 | gameplay-engineer | cargoshift | Waterline on the wave; submerged hull reads
+  accept: the waterline sits within 4 px of the drawn wave surface (or the wave baseline is tied to SEA_Y), and the hull part below the line has a faint distinct tint in a storm shot; a selftest asserts the clipped line stays within SEA_Y +- 1.5 at tilts -0.4/0/0.4; check.sh cargoshift PASS.
+  source: R0014 QA verify T-0042
+- [T-0048] P2 | gameplay-engineer | redshift | Brighter kill popups
+  accept: "+N" popups read clearly against the grid at peak (palette GOOD at full alpha, fade starts later); a selftest ties R.POPUP_RISE/POPUP_SIZE to Juice.popup's values; check.sh redshift PASS.
+  source: R0014 QA verify T-0040
 
 ## In progress
 
 ## Done
 <!-- - [T-####] ... · R#### · <sha> -->
+- [T-0025] P2 | platform-engineer | shared | Late-round QA flags for single-game launches · R0014 · 491ded2
+- [T-0040] P2 | gameplay-engineer | redshift | Popup rise stays below the HUD · R0014 · 6e0e62a
+- [T-0041] P2 | gameplay-engineer | nightwatch | Stronger danger cues · R0014 · 5ab0c53
+- [T-0042] P2 | gameplay-engineer | cargoshift | Waterline follows the sea, not the hull · R0014 · 39adf0c
+- [T-0043] P2 | platform-engineer | shared (gauntlet) | Cap the gauntlet card word · R0014 · d7ad814
 - [T-0030] P1 | platform-engineer | shared (gauntlet) | Gauntlet interstitial card; slot timer starts after each game's intro · R0013 · 0b1590e
 - [T-0033] P1 | gameplay-engineer | redshift | Two-finger touch: steer and BRAKE/BOOST at once · R0013 · 48b3639
 - [T-0034] P1 | gameplay-engineer | phaseshift | Fill the upper screen with two parallax block rows · R0013 · ec26439
