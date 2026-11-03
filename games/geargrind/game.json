@@ -1,0 +1,11 @@
+{
+  "title": "Gear Grind",
+  "tagline": "Shift in the band. Beat the rival to the line.",
+  "controls": "Space or Up to shift up. Touch: tap anywhere",
+  "accent": "#FF9F1C",
+  "genre": "timing drag racer",
+  "shift": "Shifting gears: one button, shift up each time the tach needle crosses the band, four heats to win.",
+  "sense": "GEAR",
+  "status": "draft",
+  "slot": 2
+}
