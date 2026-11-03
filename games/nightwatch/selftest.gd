@@ -89,6 +89,17 @@ func _init() -> void:
 		_t(rc.size.x >= 96 and rc.size.y >= 96, "thumb size")
 	_t(R.danger_band(0.6, 0) == 1 and R.danger_band(0.8, 0) == 2 and R.danger_band(0.72, 2) == 2
 		and R.danger_band(0.68, 2) == 1 and R.danger_band(0.47, 1) == 1 and R.danger_band(0.44, 1) == 0, "danger_band")
+	# thumbnail eyes: inside the cue outline (inner edge 9 px in) and visibly bigger/closer as d grows
+	const W := preload("res://games/nightwatch/watch_draw.gd")
+	for rc: Rect2 in R.THUMB_RECTS:
+		var prev: Dictionary = {}
+		for dv in [0.3, 0.6, 0.9, 1.0]:
+			var e: Dictionary = W.thumb_eye_pose(rc, dv)
+			var inner := rc.grow(-9.0)
+			_t(inner.encloses(Rect2(e.pos - Vector2(e.sep + e.rad, e.rad), Vector2(2.0 * (e.sep + e.rad), 2.0 * e.rad))), "thumb eyes inside d%.1f" % dv)
+			if not prev.is_empty() and dv < 1.0:
+				_t(e.rad > prev.rad + 1.0 and e.sep > prev.sep + 4.0 and e.alpha > prev.alpha and e.pos.y > prev.pos.y, "thumb eyes grow d%.1f" % dv)
+			prev = e
 	if fails.is_empty():
 		print("SELFTEST OK")
 		quit(0)

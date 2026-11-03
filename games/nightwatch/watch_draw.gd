@@ -93,6 +93,27 @@ static func draw_eyes(ci: CanvasItem, rc: Rect2, z: float, t: float, feed: int, 
 	ci.draw_circle(hp + Vector2(sep, 0), rad, col)
 
 
+## Thumbnail eyes: stay wholly inside the BAD cue outline yet still read as approaching.
+## Returns {pos (centre between the eyes), rad, sep (half spacing), alpha}. Pure geometry.
+static func thumb_eye_pose(rc: Rect2, d: float) -> Dictionary:
+	var dd := clampf(d, 0.0, 1.0)
+	var rad := 2.0 + 8.0 * dd
+	var margin := CUE_INSET + 2.0 + 3.0 + rad
+	var y0 := maxf(head_pos(rc, 0.0).y, rc.position.y + margin)
+	var y1 := rc.end.y - margin
+	var sep := lerpf(5.0, 34.0, dd)
+	return {"pos": Vector2(rc.get_center().x, lerpf(y0, y1, dd)), "rad": rad, "sep": sep, "alpha": 0.55 + 0.45 * dd}
+
+
+static func draw_thumb_eyes(ci: CanvasItem, rc: Rect2, d: float, t: float, feed: int) -> void:
+	if not blink_on(t, feed):
+		return
+	var e := thumb_eye_pose(rc, d)
+	var col := a(INK, e.alpha)
+	ci.draw_circle(e.pos + Vector2(-e.sep, 0), e.rad, col)
+	ci.draw_circle(e.pos + Vector2(e.sep, 0), e.rad, col)
+
+
 static func draw_body(ci: CanvasItem, rc: Rect2, z: float, fill: Color, line: Color, lw: float, grow: float = 1.0) -> void:
 	var sc := body_scale(rc, z) * grow
 	var f := foot(rc, z)
@@ -198,7 +219,7 @@ static func draw_thumbs(ci: CanvasItem, font: Font, g) -> void:
 			continue
 		draw_hall(ci, rc, i, 0.6)
 		draw_static(ci, rc, 24, 3.0, 2.0, DIM)
-		draw_eyes(ci, rc, s.d[i], g.anim, i, 2.0 + 5.0 * s.d[i], INK, true)
+		draw_thumb_eyes(ci, rc, s.d[i], g.anim, i)
 		ci.draw_string(font, rc.position + Vector2(10, 34), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 32, DIM)
 		if i == s.watched:
 			ci.draw_rect(rc, a(BG, 0.88))
