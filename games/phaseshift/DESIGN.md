@@ -114,6 +114,7 @@ Screen map (1280 x 720):
 
 Screen x of cell c: `sx = PLAYER_X + c * CELL - dist` (draw only cells with `sx` in -80..1280).
 - **BG:** fill BG; 1 px TRACE grid at 40 px pitch, scrolled left at half speed (`x offset = -fmod(dist * 0.5, 40)`).
+- **Block rows (R0013):** two parallax rows of block silhouettes bottom-anchored at y 520 (heights 150-320, 130 px pitch), world A at 0.3x scroll and world B at 0.6x. The current world's row is PANEL tinted 22% with its colour plus a 2 px outline; the other is a 2 px outline only. They swap with a 0.15 s linear tween (`world_blend`).
 - **Floor cells** (78 x 40 at `(sx + 1, 560)`):
   - both (3): PANEL fill, 2 px TRACE outline, a 4 px INK line along the top at alpha 0.5.
   - your world: fill `world_col`, 4 px INK line along the top.

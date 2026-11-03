@@ -16,6 +16,8 @@ const PHASE_PAD := Rect2(170, 616, 300, 96)
 const JUMP_PAD := Rect2(810, 616, 300, 96)
 const PLAYER_SIZE := 48.0
 const AIR_TURN := PI / 2.0
+const ROW_BOTTOM := 520.0
+const ROW_TWEEN := 0.15
 
 
 static func world_col(w: int) -> Color:
@@ -29,7 +31,30 @@ static func glow_rect(ci: CanvasItem, r: Rect2, col: Color) -> void:
 		ci.draw_rect(g, Color(col, pair[1]))
 
 
-static func draw_backdrop(ci: CanvasItem, dist: float) -> void:
+static func _hash(i: int, salt: int) -> float:
+	var h: int = (i * 73856093 + salt * 19349663) & 0x7fffffff
+	h = (h ^ (h >> 13)) * 1274126177 & 0x7fffffff
+	return float(h % 1000) / 1000.0
+
+
+## One parallax row of block silhouettes for `world`. fill = 1 when it is the current world
+## (PANEL tinted with the world colour), 0 when not (2 px outline only).
+static func draw_block_row(ci: CanvasItem, dist: float, speed: float, world: int, fill: float, salt: int) -> void:
+	var pitch := 130.0
+	var base := dist * speed
+	var i0 := floori(base / pitch)
+	var col := world_col(world)
+	for i in range(i0, i0 + 11):
+		var x := i * pitch - base + (0.0 if world == 1 else 40.0)
+		var w := 84.0 + _hash(i, salt) * 36.0
+		var h := 150.0 + _hash(i, salt + 7) * 170.0
+		var r := Rect2(x, ROW_BOTTOM - h, w, h)
+		if fill > 0.0:
+			ci.draw_rect(r, Color(PANEL.lerp(col, 0.22), fill))
+		ci.draw_rect(r, Color(col, lerpf(0.4, 0.75, fill)), false, 2.0)
+
+
+static func draw_backdrop(ci: CanvasItem, dist: float, blend: float = 1.0) -> void:
 	ci.draw_rect(Rect2(0, 0, 1280, 720), BG)
 	var off := -fmod(dist * 0.5, 40.0)
 	var x := off
@@ -40,6 +65,9 @@ static func draw_backdrop(ci: CanvasItem, dist: float) -> void:
 	while y < 720.0:
 		ci.draw_line(Vector2(0, y), Vector2(1280, y), TRACE, 1.0)
 		y += 40.0
+	# blend: 1 = world A current, 0 = world B current (tweened by game.gd over ROW_TWEEN)
+	draw_block_row(ci, dist, 0.3, 1, blend, 1)
+	draw_block_row(ci, dist, 0.6, 2, 1.0 - blend, 2)
 
 
 static func draw_course(ci: CanvasItem, course: R.Course, dist: float, world: int, hint_c: int,

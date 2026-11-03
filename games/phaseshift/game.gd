@@ -54,6 +54,7 @@ var last_phase_name: String = ""
 var loop_restart_t: float = 0.0
 var hint_c: int = -1
 var hint_w: int = 0
+var world_blend: float = 1.0
 var font: Font = ThemeDB.fallback_font
 
 
@@ -70,6 +71,7 @@ func begin() -> void:
 	wall_flash_c = -1; wall_flash_t = 0.0; fail_tint_t = 0.0; life_flash_t = 0.0
 	banner_text = ""; banner_t = 0.0; last_phase_name = ""; loop_restart_t = 0.0
 	hint_c = -1; hint_w = 0
+	world_blend = 1.0 if body.world == 1 else 0.0
 	Synth.stop_loop()
 	Synth.sfx("blip")
 
@@ -86,6 +88,7 @@ func _process(delta: float) -> void:
 		pad_t[i] = maxf(0.0, pad_t[i] - delta)
 	squash_t = maxf(0.0, squash_t - delta)
 	phase_fx_t = maxf(0.0, phase_fx_t - delta)
+	world_blend = move_toward(world_blend, 1.0 if body.world == 1 else 0.0, delta / D.ROW_TWEEN)
 	wall_flash_t = maxf(0.0, wall_flash_t - delta)
 	fail_tint_t = maxf(0.0, fail_tint_t - delta)
 	life_flash_t = maxf(0.0, life_flash_t - delta)
@@ -260,7 +263,7 @@ func _fail(ev: int, r: float) -> bool:
 func _draw() -> void:
 	if course == null:
 		return
-	D.draw_backdrop(self, dist)
+	D.draw_backdrop(self, dist, world_blend)
 	D.draw_course(self, course, dist, body.world, hint_c, hint_w, wall_flash_c, wall_flash_t, t)
 	var sx := 1.0
 	var sy := 1.0
