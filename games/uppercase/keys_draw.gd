@@ -127,7 +127,7 @@ static func draw_shift_key(ci: CanvasItem, rect: Rect2, side: int, down: bool, h
 		pts[i] += o
 	ci.draw_polyline(pts, inkc, 4.0)
 	var lx: float = r.end.x - 30.0 if side == Rules.LEFT else r.position.x + 30.0
-	text(ci, "F" if side == Rules.LEFT else "J", Vector2(lx, r.end.y - 22.0), 24, BG if lit else DIM)
+	text(ci, "F" if side == Rules.LEFT else "J", Vector2(lx, r.end.y - 24.0), 32, BG if lit else DIM)
 
 
 static func draw_hud(ci: CanvasItem, score: int, lives: int, max_lives: int, life_flash: float, lost_idx: int, progress: float, banner: String, banner_alpha: float, score_scale: float) -> void:

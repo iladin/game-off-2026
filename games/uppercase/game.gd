@@ -32,6 +32,13 @@ const SHAKE_SOFT := 4.0
 const SHAKE_HARD := 14.0
 const HITSTOP := 0.06
 const BOT_SPREAD := 24.0
+const CLACK_HZ := 1100.0
+const CLACK_END_HZ := 140.0
+const CLACK_DUR := 0.05
+const CLACK_VOL := 0.3
+const DING_HZ := 1568.0
+const DING_DUR := 0.3
+const DING_VOL := 0.25
 
 var intro: float = 0.0
 var blip2_done: bool = false
@@ -136,6 +143,7 @@ func _process(delta: float) -> void:
 		if ph != "":
 			banner_text = ph
 			banner_t = BANNER_TIME
+			Synth.tone(DING_HZ, DING_DUR, "sine", DING_VOL)
 	if r >= Rules.TOP_AT and not top_music:
 		top_music = true
 		Synth.stop_loop()
@@ -273,6 +281,7 @@ func _press(side: int) -> void:
 		Synth.sfx("coin", 0.84)
 		Juice.burst(self, pos, ACCENT, 8)
 		Juice.popup(self, pos - Vector2(0, 50), "+%d" % pts, GOOD)
+	Synth.tone(CLACK_HZ, CLACK_DUR, "square", CLACK_VOL, CLACK_END_HZ)
 	streak += 1
 	if streak % 10 == 0:
 		Juice.flash(Color(1, 1, 1, 0.15), 0.1)
