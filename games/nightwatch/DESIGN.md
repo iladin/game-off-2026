@@ -192,3 +192,9 @@ The margin stops it flicking between two feeds while the flash recharges. In the
 ## R0010 notes
 - `begin()` builds the Watch with `Rules.fresh()` (watched = START_FEED) and runs one zero-dt `Rules.step` so the opening feeds are awake on frame 1 (feed 2 shows its eyes in the start shot).
 - QA flag `--nwqa` (after `--`): an idle player who switches to CAM 2 at t 8, for shots of the full-size creeper: `--game=nightwatch --nwqa --shotfile=<png> --shotframes=1250` (no `--autoplay`).
+
+## R0013 notes (T-0035: danger in view)
+- Unwatched awake feed with `d >= CUE_OUTLINE_D 0.3` (about 4 s in for the first creeper): its thumbnail gets a pulsing BAD 4 px outline (3 Hz, just outside the thumb border).
+- Unwatched awake feed with `d > CUE_BAR_D 0.6` (about 8 s in): a 6 px BAD bar pulses at 3 Hz on the main view's right edge, level with that feed's thumbnail (`draw_danger_bars` in watch_draw.gd).
+- The watched creeper's body is already 140 px tall at d 0.3 (330 x (0.18 + 0.82 d)), so the 40 px minimum holds from d 0.2.
+- Shots: `idle-560.png` and `idle-620.png` (no input, ~10 s of game time) show bar and outline.

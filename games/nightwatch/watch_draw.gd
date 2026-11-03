@@ -11,6 +11,9 @@ const ACCENT := Color("8FA8FF")
 const GOOD := Color("FFD34D")
 const BAD := Color("FF3B5C")
 const BODY := Vector2(200.0, 330.0)
+const CUE_OUTLINE_D := 0.3  # unwatched thumbnail gets a pulsing BAD outline from this d
+const CUE_BAR_D := 0.6  # unwatched feed above this d also pulses a BAD bar on the main view edge
+const CUE_HZ := 3.0
 const DOOR_LIGHT := [Vector2(0.08, 0.08), Vector2(0.92, 0.08), Vector2(0.5, 0.04)]
 
 
@@ -147,10 +150,25 @@ static func draw_main(ci: CanvasItem, font: Font, g) -> void:
 		ci.draw_rect(rc, a(BAD, 0.25))
 		frame = BAD
 	ci.draw_rect(rc, frame, false, 6.0)
+	draw_danger_bars(ci, g)
 	ci.draw_string(font, Vector2(186, 190), str(feed + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 40, INK)
 	var hz := 4.0 if g.band == 2 else 1.0
 	if fposmod(g.anim * hz, 1.0) < 0.5:
 		ci.draw_circle(Vector2(870, 162), 8.0, BAD)
+
+
+## 6 px BAD bar on the main view's right edge, level with each dangerous unwatched thumbnail.
+static func draw_danger_bars(ci: CanvasItem, g) -> void:
+	var s = g.watch
+	var rc: Rect2 = R.MAIN_RECT
+	var pulse := 0.5 + 0.5 * sin(TAU * CUE_HZ * g.anim)
+	for i in R.FEEDS:
+		if i == s.watched or not s.awake[i] or s.d[i] <= CUE_BAR_D:
+			continue
+		var tr: Rect2 = R.THUMB_RECTS[i]
+		var y0 := maxf(tr.position.y, rc.position.y)
+		var y1 := minf(tr.end.y, rc.end.y)
+		ci.draw_rect(Rect2(rc.end.x - 6.0, y0, 6.0, y1 - y0), a(BAD, 0.45 + 0.55 * pulse))
 
 
 static func draw_thumbs(ci: CanvasItem, font: Font, g) -> void:
@@ -193,6 +211,9 @@ static func draw_thumbs(ci: CanvasItem, font: Font, g) -> void:
 			var cy := rc.get_center().y
 			ci.draw_colored_polygon(PackedVector2Array([Vector2(902, cy), Vector2(926, cy - 14), Vector2(926, cy + 14)]), ACCENT)
 		ci.draw_rect(rc, bc, false, 4.0)
+		if s.d[i] >= CUE_OUTLINE_D:
+			var cp := 0.5 + 0.5 * sin(TAU * CUE_HZ * g.anim)
+			ci.draw_rect(rc.grow(3), a(BAD, 0.4 + 0.6 * cp), false, 4.0)
 
 
 static func draw_lamp(ci: CanvasItem, font: Font, g) -> void:
