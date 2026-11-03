@@ -234,7 +234,11 @@ static func draw_gap(ci: CanvasItem, d: float, rival_d: float) -> void:
 	var px := gap * PX_PER_M
 	if absf(px) < 10.0:
 		ci.draw_line(Vector2(FRONT_X, 361), Vector2(FRONT_X, 385), INK, 3.0)
-		text(ci, "LEVEL", FRONT_X, 355.0, 24, INK, 200.0)
+		# Label sits left of the bumper line on a backing panel so the checker start line (x 470..502 at the start) never crosses it.
+		var lx := FRONT_X - 72.0
+		ci.draw_rect(Rect2(lx - 48.0, 331.0, 96.0, 32.0), PANEL)
+		ci.draw_rect(Rect2(lx - 48.0, 331.0, 96.0, 32.0), TRACE, false, 2.0)
+		text(ci, "LEVEL", lx, 355.0, 24, INK, 90.0)
 		return
 	var a := FRONT_X
 	var b := clampf(FRONT_X + px, 24.0, 1256.0)
