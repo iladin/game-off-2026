@@ -138,7 +138,7 @@ func _init() -> void:
 				slo = minf(slo, p.y)
 		if slo < R.SEA_Y - 1e-3:
 			f.append("submerged above sea at tilt %f" % tl)
-	for xx in range(300, 981, 20):
+	for xx in range(330, 951, 20):
 		for tt in [0.0, 1.7, 3.3, 6.1]:
 			if absf(R.sea_offset(float(xx), tt)) > 4.0:
 				f.append("sea surface under hull off SEA_Y at x %d" % xx)

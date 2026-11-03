@@ -62,8 +62,8 @@ const DRAG_GRAB := 96.0
 const DRAG_DEAD := 12.0
 const LIVES := 3
 const SEA_Y := 470.0
-const SEA_CALM_HALF := 380.0
-const SEA_CALM_FADE := 160.0
+const SEA_CALM_HALF := 310.0
+const SEA_CALM_FADE := 60.0
 const SEA_CALM_AMP := 0.18
 const WATERLINE_HALF := 1.5
 const HULL := [Vector2(-340, -20), Vector2(340, -20), Vector2(260, 110), Vector2(-260, 110)]
@@ -333,7 +333,8 @@ static func sim_round(seed_v: int, difficulty: int, idle: bool = false, tilt6: A
 
 
 ## Sea surface height offset from SEA_Y at world x. Swell is full size at the edges and
-## nearly flat under the hull (|x - 640| < SEA_CALM_HALF), so the level waterline sits on it.
+## SEA_CALM_AMP of full under the hull (|x - 640| < SEA_CALM_HALF = the hull's waterline half width, 310)
+## and eases (smoothstep over SEA_CALM_FADE) to full size at the hull edges, so the level waterline sits on it.
 static func sea_offset(x: float, t: float) -> float:
 	var k := smoothstep(SEA_CALM_HALF, SEA_CALM_HALF + SEA_CALM_FADE, absf(x - HULL_PIVOT.x))
 	var amp := lerpf(SEA_CALM_AMP, 1.0, k)
