@@ -72,7 +72,7 @@ static func _cell(ci: CanvasItem, c: int, dx: float, reg: int, target: int, t: f
 			ci.draw_rect(Rect2(r.position.x, r.end.y - 6.0, r.size.x, 6.0), Color(ACCENT, a))
 		text(ci, cx, r.position.y + 66.0 * sc, "0", int(48 * sc), Color(DIM, a))
 	if flash > 0.0:
-		ci.draw_rect(r, Color(GOOD, 0.6 * a))
+		ci.draw_rect(r, Color(1, 1, 1, 0.15 * a))
 	if bad > 0.0:
 		ci.draw_rect(r, Color(BAD, a), false, 4.0)
 
@@ -115,12 +115,16 @@ static func _bit(ci: CanvasItem, pos: Vector2, is_one: bool, a: float, tint: flo
 	text(ci, pos.x, pos.y + 20.0, "1" if is_one else "0", 56, Color(INK if is_one else DIM, a))
 
 
-static func draw_hint(ci: CanvasItem, col: int, bit_y: float, good: bool, t: float) -> void:
-	var col_c := ACCENT if good else BAD
+static func draw_hint(ci: CanvasItem, col: int, bit_y: float, good: bool, t: float, hints: bool = true) -> void:
+	var col_c := INK
+	if hints:
+		col_c = ACCENT if good else BAD
 	var x := R.col_x(col)
-	ci.draw_line(Vector2(x, bit_y + 40.0), Vector2(x, R.REG_Y), Color(col_c, 0.5), 4.0)
+	ci.draw_line(Vector2(x, bit_y + 40.0), Vector2(x, R.REG_Y), Color(col_c, 0.6), 2.0)
 	var pulse := 0.6 + 0.4 * sin(TAU * 3.0 * t)
-	ci.draw_rect(Rect2(x - 50, R.REG_Y, 100, 100), Color(col_c, 0.5 * pulse + 0.3), false, 6.0)
+	var cell := Rect2(x - 50, R.REG_Y, 100, 100)
+	ci.draw_rect(cell, Color(col_c, 0.08 + 0.06 * pulse))
+	ci.draw_rect(cell, Color(col_c, 0.5 * pulse + 0.3), false, 4.0 if hints else 2.0)
 
 
 static func draw_target(ci: CanvasItem, reg: int, target: int, t: float, pop: float) -> void:
@@ -175,13 +179,18 @@ static func draw_hud(ci: CanvasItem, score: int, lives: int, max_lives: int, lif
 		else:
 			ci.draw_rect(r, Color(BAD, 0.8) if (life_flash > 0.0 and i == lives) else PANEL)
 			ci.draw_rect(r, DIM, false, 2.0)
-	var s := R.bytes_string(bytes_done)
 	for i in R.CELLS:
-		var on := s[i] == "1"
-		var sz := 28
+		var on := i < bytes_done
+		var sz := 20.0
 		if on and i == bytes_done - 1 and byte_squash > 1.0:
-			sz = int(28 * byte_squash)
-		text(ci, 640.0 + (i - 3.5) * 22.0, 112, s[i], sz, GOOD if on else DIM)
+			sz = 20.0 * byte_squash
+		var ctr := Vector2(640.0 + (i - 3.5) * 32.0, 102.0)
+		var q := Rect2(ctr - Vector2(sz, sz) * 0.5, Vector2(sz, sz))
+		if on:
+			ci.draw_rect(q, GOOD)
+		else:
+			ci.draw_rect(q, PANEL)
+			ci.draw_rect(q, DIM, false, 2.0)
 	if banner != "" and banner_a > 0.0:
 		text(ci, 640, 262, banner, 40, Color(ACCENT, banner_a))
 
@@ -208,10 +217,9 @@ static func draw_scene(g: Node2D) -> void:
 	if fx.ring_t > 0.0 and fx.ring_c >= 0:
 		g.draw_rect(Rect2(R.col_x(fx.ring_c) - 56, R.REG_Y - 6, 112, 112), INK, false, 2.0)
 	if g.bit_alive:
-		if R.hints_on(g._ramp()):
-			var good: bool = R.land_one(g.reg, g.target, g.bit_col) == R.SET if g.bit_one \
-					else R.land_zero(g.reg, g.bit_col) == R.DODGE
-			draw_hint(g, g.bit_col, g.bit_y, good, now)
+		var good: bool = R.land_one(g.reg, g.target, g.bit_col) == R.SET if g.bit_one \
+				else R.land_zero(g.reg, g.bit_col) == R.DODGE
+		draw_hint(g, g.bit_col, g.bit_y, good, now, R.hints_on(g._ramp()))
 		draw_bit(g, Vector2(R.col_x(g.bit_col), g.bit_y), g.bit_one, minf(1.0, g.bit_age / g.FADE_IN),
 				1.0 if fx.tint_t > 0.0 else 0.0, g.fast)
 	var pads: Array[Rect2] = [inp.LEFT_PAD, inp.RIGHT_PAD, inp.DROP_PAD]

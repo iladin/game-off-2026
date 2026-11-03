@@ -262,7 +262,6 @@ func _byte_done(r: float) -> void:
 	fx.pop_t = 0.0
 	score += R.BYTE_PTS
 	Synth.tone(1047.0, 0.16, "square", 0.30, 2093.0)
-	Juice.flash(Color(1, 1, 1, 0.15), 0.1)
 	Juice.shake(SHAKE_SOFT)
 	Juice.popup(self, Vector2(640, 400), "BYTE", BD.GOOD, 40)
 	if bytes_done >= R.BYTES_TO_WIN:

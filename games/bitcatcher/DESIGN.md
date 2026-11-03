@@ -86,12 +86,12 @@ Screen map (1280 x 720):
   - just-cleared by a 0: BAD outline 0.2 s.
 - **Shift slide:** the integers rotate at once; only the drawing eases. After ROL every cell at column c came from column c+1, so draw every cell at `x + slide_px` with `slide_px` starting at +112 (ROL) or -112 (ROR) and easing to 0 over `SLIDE_TIME = 0.10` s (ease out cubic); `prog` goes 0 to 1. The wrapped cell (`wrap_col` = 7 after ROL, 0 after ROR) slides in from just outside the frame at alpha `prog`, and a ghost copy of it is drawn at `x + slide_px - 896` (ROL) or `x + slide_px + 896` (ROR), sliding out of the other end at alpha `1 - prog`. No clipping API needed.
 - **Falling bit:** 80 x 80 square centred at `(col_x(col), y)`. A 1: PANEL fill, 4 px ACCENT outline, `1` 56 px INK, glow. A 0: PANEL fill, 2 px DIM outline, `0` 56 px DIM. Fades in over 0.15 s. Fast: 3 ghost copies 24, 48, 72 px above at alpha 0.30, 0.20, 0.10.
-- **Hint** (while `hints_on(r)` and a bit is falling): the lane under the bit drawn as a 4 px line (ACCENT for a good landing, BAD for a bad one) at alpha 0.5 from the bit to the cell, and that cell's outline 6 px in the same colour, pulsing at 3 Hz. Good = `Rules.land_one(...) == SET` for a 1, `Rules.land_zero(...) == DODGE` for a 0.
+- **Landing lane** (R0007, always while a bit is falling): a 2 px line from the bit to its landing cell, plus a ghost outline (faint fill, 4 px outline pulsing at 3 Hz) on that cell. While `hints_on(r)` they are ACCENT for a good landing and BAD for a bad one; once hints are off they are neutral INK (2 px outline) so the player still sees where the bit will land. Good = `Rules.land_one(...) == SET` for a 1, `Rules.land_zero(...) == DODGE` for a 0.
 - **Pads:** PANEL fill, 4 px TRACE outline. LEFT: a filled INK triangle pointing left (48 wide, 56 tall) centred; RIGHT: mirrored; DROP: a triangle pointing down (56 wide, 48 tall). Pressed (0.1 s after a shift, or while the drop is held): offset +6 px down, ACCENT fill, triangle in BG colour. No text on pads.
 - **HUD** (x 170-1090; nothing at x < 150 or x > 1100 above y 70):
   - Score 40 px INK centred, baseline y 56.
   - Lives: 3 squares 20 x 20 at y 66-86, centres x 608 / 640 / 672: ACCENT alive, 2 px DIM outline when lost (BAD fill 0.4 s right after).
-  - Byte counter: 8 digits at 28 px, centred at y 112 (baseline), letter spacing 22 px, reading `Rules.bytes_string(bytes_done)`: `1` per finished byte in GOOD, `0` in DIM (for example `11100000`). This mini register is the round's progress bar.
+  - Byte progress: 8 drawn squares 20 x 20, centred at y 102, pitch 32 (no digits): finished bytes filled GOOD, the rest PANEL with a 2 px DIM outline. The newest square squashes 1.25x on byte complete. R0007: replaces the old `11110000` digit string.
   - Banner 40 px ACCENT centred, baseline y 168, 1.2 s, fades over the last 0.3 s.
 - No READY text, no other instructions. The only words ever on screen: the banners and the popups below.
 
@@ -113,7 +113,7 @@ Screen map (1280 x 720):
 ## Juice list
 1. **Every shift:** the row slides 112 px with the wrap copy (0.10 s), the pressed pad drops 6 px and fills ACCENT for 0.1 s; same frame as the `shift` sound.
 2. **SET:** the cell squashes 1.25x then back over 0.12 s; `Juice.burst(self, cell_centre, ACCENT)` (14); `Juice.popup(self, cell_centre - Vector2(0, 70), "+%d" % pts, GOOD)`.
-3. **Byte complete:** all 8 cells flash GOOD for 0.15 s, `Juice.flash(Color(1, 1, 1, 0.15), 0.1)`, `Juice.shake(4)`, popup `BYTE` 40 px GOOD at (640, 400); the new byte digit in the HUD squashes 1.25x. Then the new target's sockets pop in (outline scale 0.6 to 1.0, ease out back, 0.2 s).
+3. **Byte complete:** only the 8 cells flash, white at alpha 0.15 for 0.15 s (no full-screen flash; BG and PANEL stay put so the digits stay readable), `Juice.shake(4)`, popup `BYTE` 40 px GOOD at (640, 400); the new byte digit in the HUD squashes 1.25x. Then the new target's sockets pop in (outline scale 0.6 to 1.0, ease out back, 0.2 s).
 4. **Fast drop:** ghost trail on the bit; on landing a 2 px INK ring around the cell for 0.1 s and `Juice.shake(4)` only if it was a SET.
 5. **Soft fail (LOST BIT):** the cell outline BAD 0.2 s, `Juice.shake(4)`, popup `LOST BIT` BAD, the 0 tile tinted BAD 0.2 s.
 6. **Hard fail (WRONG after grace):** `Juice.flash(Color(BAD, 0.35), 0.2)`, `Juice.shake(14)`, `Juice.hitstop(0.06)`, `Juice.burst(self, cell_centre, BAD)`; popup `WRONG` BAD; the lost life square flashes BAD 0.4 s; music silent 0.5 s.
