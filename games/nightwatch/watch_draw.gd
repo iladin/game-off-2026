@@ -14,6 +14,9 @@ const BODY := Vector2(200.0, 330.0)
 const CUE_OUTLINE_D := 0.3  # unwatched thumbnail gets a pulsing BAD outline from this d
 const CUE_BAR_D := 0.6  # unwatched feed above this d also pulses a BAD bar on the main view edge
 const CUE_HZ := 3.0
+const CUE_MIN_A := 0.6  # danger cue alpha floor (pulse runs CUE_MIN_A..1.0)
+const CUE_INSET := 7.0  # thumb outline centre line inside the thumb (spans 5-9 px in; border ends 2 px in: 3 px clear)
+const CUE_BAR_X := 14.0  # bar left edge, px left of the main view's right edge (8 px wide: 3 px clear of the frame, 8 px of the hint arrow)
 const DOOR_LIGHT := [Vector2(0.08, 0.08), Vector2(0.92, 0.08), Vector2(0.5, 0.04)]
 
 
@@ -157,7 +160,7 @@ static func draw_main(ci: CanvasItem, font: Font, g) -> void:
 		ci.draw_circle(Vector2(870, 162), 8.0, BAD)
 
 
-## 6 px BAD bar on the main view's right edge, level with each dangerous unwatched thumbnail.
+## 8 px BAD bar (x 886-894) on the main view's right edge, level with each dangerous unwatched thumbnail.
 static func draw_danger_bars(ci: CanvasItem, g) -> void:
 	var s = g.watch
 	var rc: Rect2 = R.MAIN_RECT
@@ -168,7 +171,7 @@ static func draw_danger_bars(ci: CanvasItem, g) -> void:
 		var tr: Rect2 = R.THUMB_RECTS[i]
 		var y0 := maxf(tr.position.y, rc.position.y)
 		var y1 := minf(tr.end.y, rc.end.y)
-		ci.draw_rect(Rect2(rc.end.x - 6.0, y0, 6.0, y1 - y0), a(BAD, 0.45 + 0.55 * pulse))
+		ci.draw_rect(Rect2(rc.end.x - CUE_BAR_X, y0, 8.0, y1 - y0), a(BAD, CUE_MIN_A + (1.0 - CUE_MIN_A) * pulse))
 
 
 static func draw_thumbs(ci: CanvasItem, font: Font, g) -> void:
@@ -213,7 +216,7 @@ static func draw_thumbs(ci: CanvasItem, font: Font, g) -> void:
 		ci.draw_rect(rc, bc, false, 4.0)
 		if s.d[i] >= CUE_OUTLINE_D:
 			var cp := 0.5 + 0.5 * sin(TAU * CUE_HZ * g.anim)
-			ci.draw_rect(rc.grow(3), a(BAD, 0.4 + 0.6 * cp), false, 4.0)
+			ci.draw_rect(R.THUMB_RECTS[i].grow(-CUE_INSET), a(BAD, CUE_MIN_A + (1.0 - CUE_MIN_A) * cp), false, 4.0)
 
 
 static func draw_lamp(ci: CanvasItem, font: Font, g) -> void:

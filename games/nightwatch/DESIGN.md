@@ -198,3 +198,9 @@ The margin stops it flicking between two feeds while the flash recharges. In the
 - Unwatched awake feed with `d > CUE_BAR_D 0.6` (about 8 s in): a 6 px BAD bar pulses at 3 Hz on the main view's right edge, level with that feed's thumbnail (`draw_danger_bars` in watch_draw.gd).
 - The watched creeper's body is already 140 px tall at d 0.3 (330 x (0.18 + 0.82 d)), so the 40 px minimum holds from d 0.2.
 - Shots: `idle-560.png` and `idle-620.png` (no input, ~10 s of game time) show bar and outline.
+
+## R0014 notes (T-0041: stronger danger cues)
+- One implementation, in watch_draw.gd (`draw_thumbs`, `draw_danger_bars`); the R0013 cues are replaced. BAD alpha pulses `CUE_MIN_A 0.6 + 0.4 * pulse` at 3 Hz, so it never drops below 0.6.
+- Thumbnail outline (unwatched awake, `d >= 0.3`): 4 px, inset 5-9 px INSIDE the thumb (the thumb border ends 2 px in: 3 px clear of the outward hint glow and its ACCENT border).
+- Main-view bar (`d > 0.6`): 8 px wide at x 886-894, level with the feed's thumbnail: 3 px clear of the 6 px frame, 8 px clear of the hint arrow tip (x 902).
+- Shots: `.tools/shots/nightwatch/r14b-idle-360.png` (~5 s), `r14b-idle-600.png` (~9 s).
