@@ -222,7 +222,7 @@ static func draw_skyline(ci: CanvasItem, d: float) -> void:
 		ci.draw_rect(Rect2(x, 190.0 - h, w, h), TRACE, false, 2.0)
 
 
-## Marker between the two front bumpers: BAD when the rival is ahead, GOOD when the player leads.
+## Marker between the two front bumpers (in the gap between the lanes): INK (not BAD, which means a fail) when the rival is ahead, GOOD when the player leads.
 static func draw_gap(ci: CanvasItem, d: float, rival_d: float) -> void:
 	var gap := rival_d - d
 	var px := gap * PX_PER_M
@@ -232,10 +232,10 @@ static func draw_gap(ci: CanvasItem, d: float, rival_d: float) -> void:
 		return
 	var a := FRONT_X
 	var b := clampf(FRONT_X + px, 24.0, 1256.0)
-	var col := BAD if gap > 0.0 else GOOD
-	var y := 373.0
+	var col := INK if gap > 0.0 else GOOD
+	var y := 352.0
 	ci.draw_line(Vector2(a, y), Vector2(b, y), col, 3.0)
 	ci.draw_line(Vector2(a, y - 12), Vector2(a, y + 12), col, 3.0)
 	ci.draw_line(Vector2(b, y - 12), Vector2(b, y + 12), col, 3.0)
 	var label := ("RIVAL AHEAD %d m" if gap > 0.0 else "YOU LEAD %d m") % int(absf(gap))
-	text(ci, label, clampf((a + b) * 0.5, 160.0, 1120.0), y - 18.0, 24, col, 320.0)
+	text(ci, label, clampf((a + b) * 0.5, 160.0, 1120.0), y - 16.0, 24, col, 320.0)
