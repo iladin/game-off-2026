@@ -15,9 +15,9 @@ const BAD := Color("FF3B5C")
 const PX_PER_M := 6.0
 const CAR_LEN := 168.0
 const FRONT_X := 470.0
-const TACH_C := Vector2(640, 712)
+const TACH_C := Vector2(640, 690)
 const TACH_R := 170.0
-const LEVER_RECT := Rect2(1010, 516, 160, 196)
+const LEVER_RECT := Rect2(1010, 516, 160, 188)
 const ROAD_TOP := 196.0
 const ROAD_BOT := 476.0
 
@@ -42,6 +42,14 @@ static func draw_road(ci: CanvasItem, d: float) -> void:
 	ci.draw_rect(Rect2(0, ROAD_TOP, 1280, ROAD_BOT - ROAD_TOP), PANEL)
 	ci.draw_line(Vector2(0, ROAD_TOP), Vector2(1280, ROAD_TOP), TRACE, 2.0)
 	ci.draw_line(Vector2(0, ROAD_BOT), Vector2(1280, ROAD_BOT), TRACE, 2.0)
+	for i in range(0, 34):
+		var m := float(i) * 10.0 + float((i * 7) % 5) * 1.7
+		var qx := sx(m, d)
+		if qx > -10.0 and qx < 1290.0:
+			if i % 5 == 0:
+				ci.draw_rect(Rect2(qx - 5, ROAD_TOP + 2, 10, 60), INK)
+			else:
+				ci.draw_rect(Rect2(qx - 2, ROAD_TOP + 2, 4, 24 + float((i * 3) % 4) * 6.0), DIM)
 	var x0 := -fposmod(d * PX_PER_M, 96.0)
 	var x := x0
 	while x < 1280.0:
@@ -134,7 +142,7 @@ static func draw_tach(ci: CanvasItem, shown: float, lo: float, hi: float, top_ge
 	var red_col := BAD if (red_t > 0.0 and sin(TAU * 4.0 * t) > 0.0) else Color(BAD, 0.6)
 	_arc(ci, 1.0, Rules.RPM_MAX, red_col)
 	if top_gear:
-		text(ci, "TOP", 880, 700, 28, DIM, 120.0)
+		text(ci, "TOP", 880, 690, 28, DIM, 120.0)
 	else:
 		_arc(ci, lo, hi, ACCENT)
 		var c := (lo + hi) * 0.5
@@ -153,7 +161,7 @@ static func draw_tach(ci: CanvasItem, shown: float, lo: float, hi: float, top_ge
 
 static func draw_gear_box(ci: CanvasItem, gear: int, digit_k: float) -> void:
 	ci.draw_rect(Rect2(300, 560, 140, 144), PANEL)
-	ci.draw_rect(Rect2(300, 560, 140, 144), TRACE, false, 4.0)
+	ci.draw_rect(Rect2(302, 562, 136, 140), TRACE, false, 4.0)
 	text(ci, "GEAR", 370, 596, 28, DIM, 140.0)
 	var size := int(80.0 * (1.0 + 0.25 * digit_k))
 	text(ci, str(gear), 370, 690, size, ACCENT if digit_k > 0.0 else INK, 140.0)
@@ -162,14 +170,14 @@ static func draw_gear_box(ci: CanvasItem, gear: int, digit_k: float) -> void:
 static func draw_lever(ci: CanvasItem, knob_y: float, hot: bool, t: float, label: bool) -> void:
 	ci.draw_rect(LEVER_RECT, PANEL)
 	if hot:
-		ci.draw_rect(LEVER_RECT, Color(ACCENT, 0.5 + 0.5 * sin(TAU * 3.0 * t)), false, 6.0)
+		ci.draw_rect(LEVER_RECT.grow(-3.0), Color(ACCENT, 0.5 + 0.5 * sin(TAU * 3.0 * t)), false, 6.0)
 	else:
-		ci.draw_rect(LEVER_RECT, TRACE, false, 4.0)
-	ci.draw_line(Vector2(1090, 556), Vector2(1090, 660), TRACE, 6.0)
+		ci.draw_rect(LEVER_RECT.grow(-2.0), TRACE, false, 4.0)
+	ci.draw_line(Vector2(1090, 552), Vector2(1090, 640), TRACE, 6.0)
 	ci.draw_circle(Vector2(1090, knob_y), 36.0, ACCENT)
 	ci.draw_arc(Vector2(1090, knob_y), 36.0, 0.0, TAU, 32, INK, 4.0)
 	if label:
-		text(ci, "SPACE OR TAP", 1090, 702, 20, DIM, 150.0)
+		text(ci, "SPACE OR TAP", 1090, 697, 20, DIM, 150.0)
 
 
 static func draw_hud(ci: CanvasItem, score: int, lives: int, wins: int, win_k: float, life_flash: float, banner: String, banner_col: Color, banner_alpha: float) -> void:
@@ -191,3 +199,34 @@ static func draw_hud(ci: CanvasItem, score: int, lives: int, wins: int, win_k: f
 			ci.draw_rect(Rect2(c.x - 18, c.y - 7, 36, 14), DIM, false, 2.0)
 	if banner != "" and banner_alpha > 0.0:
 		text(ci, banner, 640, 168, 40, Color(banner_col, banner_alpha), 700.0)
+
+
+## Slower background row (skyline) at 0.4x of the road scroll, y 120-190.
+static func draw_skyline(ci: CanvasItem, d: float) -> void:
+	var off := d * PX_PER_M * 0.4
+	var i0 := int(floor(off / 90.0))
+	for i in range(i0 - 1, i0 + 16):
+		var h := 30.0 + float((i * 37) % 5) * 9.0
+		var w := 64.0 + float((i * 53) % 3) * 12.0
+		var x := float(i) * 90.0 - off
+		ci.draw_rect(Rect2(x, 190.0 - h, w, h), PANEL)
+		ci.draw_rect(Rect2(x, 190.0 - h, w, h), TRACE, false, 2.0)
+
+
+## Marker between the two front bumpers: BAD when the rival is ahead, GOOD when the player leads.
+static func draw_gap(ci: CanvasItem, d: float, rival_d: float) -> void:
+	var gap := rival_d - d
+	var px := gap * PX_PER_M
+	if absf(px) < 10.0:
+		ci.draw_line(Vector2(FRONT_X, 361), Vector2(FRONT_X, 385), INK, 3.0)
+		text(ci, "LEVEL", FRONT_X, 355.0, 24, INK, 200.0)
+		return
+	var a := FRONT_X
+	var b := clampf(FRONT_X + px, 24.0, 1256.0)
+	var col := BAD if gap > 0.0 else GOOD
+	var y := 373.0
+	ci.draw_line(Vector2(a, y), Vector2(b, y), col, 3.0)
+	ci.draw_line(Vector2(a, y - 12), Vector2(a, y + 12), col, 3.0)
+	ci.draw_line(Vector2(b, y - 12), Vector2(b, y + 12), col, 3.0)
+	var label := ("RIVAL AHEAD %d m" if gap > 0.0 else "YOU LEAD %d m") % int(absf(gap))
+	text(ci, label, clampf((a + b) * 0.5, 160.0, 1120.0), y - 18.0, 24, col, 320.0)

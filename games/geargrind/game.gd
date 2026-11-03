@@ -24,8 +24,8 @@ const RESULT_TIME := 1.0
 const TREE_AT_M := 28.0
 const PLAYER_GROUND := 446.0
 const RIVAL_GROUND := 300.0
-const KNOB_REST := 640.0
-const KNOB_KICK := 568.0
+const KNOB_REST := 620.0
+const KNOB_KICK := 566.0
 const KNOB_TIME := 0.15
 const SQUAT := 0.85
 const SQUAT_TIME := 0.12
@@ -373,6 +373,7 @@ func _draw() -> void:
 	var tinted := fail_tint_t > 0.0 or tint_blow
 	var squash := lerpf(1.0, SQUAT, squat_t / SQUAT_TIME)
 	SD.draw_backdrop(self)
+	SD.draw_skyline(self, d)
 	SD.draw_road(self, d)
 	SD.draw_lines_and_tree(self, d, lights, state != STAGING, TREE_AT_M)
 	var rx := SD.sx(rival_d, d) - SD.CAR_LEN
@@ -383,6 +384,7 @@ func _draw() -> void:
 		SD.draw_flame(self, clock)
 	SD.draw_car(self, Vector2(SD.FRONT_X - SD.CAR_LEN, PLAYER_GROUND), BAD if tinted else ACCENT,
 			BAD if tinted else ACCENT, 6.0, squash, d / 22.0, boosting)
+	SD.draw_gap(self, d, rival_d)
 	SD.draw_minimap(self, d, rival_d)
 	var in_band := racing and not top_gear and Rules.rpm(v, g) >= lo and Rules.rpm(v, g) <= hi
 	SD.draw_tach(self, shown_rpm, lo, hi, top_gear, red_t, clock, in_band)
