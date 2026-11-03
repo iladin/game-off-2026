@@ -149,7 +149,7 @@ Screen map (1280 x 720):
 | 2 | `EV_STOP` | `Juice.shake(4)`; ballast flashes INK fill for 0.08 s | `stop_flash_t = 0.08` |
 | 3 | `EV_THUD` | the slammed crate tinted BAD for 0.2 s, squash 0.8 wide x 1.2 tall; `Juice.shake(4)`; `Juice.burst(self, crate_screen_pos, INK, 6, 120.0)` (spray) | `thud_t = 0.2`, `thud_i` |
 | 4 | Steady tick scored | `Juice.popup(self, Vector2(640, 250), "+%d" % pts, GOOD)`; gauge GOOD band brightens (alpha 1) for 0.15 s | `tick_flash_t = 0.15` |
-| 5 | Wave hit / ridden | hit: `Juice.shake(4)` (10 if `peak > 0.9`), spray `Juice.burst(self, crest_pos, ACCENT, 14)`; ridden: popup `RODE IT` in GOOD 28 px above the hull | `crest` geometry from `waves[]`; `ridden_t` |
+| 5 | Wave hit / ridden | hit: `Juice.shake(4)` (10 if `peak > 0.9`), spray `Juice.burst(self, crest_pos, ACCENT, 14)`; ridden: popup `RODE IT` in GOOD 28 px at `PIVOT + (0, -110)` (clear of the voyage bar, banner and `+N`), hull outline glows GOOD for 0.6 s | `crest` geometry from `waves[]`; `ridden_t` |
 | 6 | Thunder | `Juice.flash(Color(INK, 0.15), 0.1)` | `thunder_t` (rain brightens to alpha 0.7 for 0.1 s) |
 | 7 | Grace capsize | ballast tinted BAD 0.2 s; `Juice.shake(4)`; popup `SHIFT` in DIM 32 px above the ship; rescue | `fail_tint_t = 0.2` |
 | 8 | Capsize (life lost) | `Juice.flash(Color(BAD, 0.35), 0.2)`, `Juice.shake(14)`, `Juice.hitstop(0.06)`, `Juice.burst(self, PIVOT, BAD)`; lost life square BAD 0.4 s; loop silent 0.5 s; during `invuln` the ship blinks (hidden when `fmod(invuln, 0.16) < 0.08`) | `fail_tint_t`, `life_flash_t = 0.4`, `loop_restart_t = 0.5`, `ship.invuln` |

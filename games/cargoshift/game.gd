@@ -204,7 +204,7 @@ func _process(delta: float) -> void:
 				score += R.WAVE_PTS
 				ridden_t = 0.6
 				Synth.sfx("coin", 1.335)
-				Juice.popup(self, D.PIVOT + Vector2(0, -230), "RODE IT", D.GOOD, 28)
+				Juice.popup(self, D.PIVOT + Vector2(0, -110), "RODE IT", D.GOOD, 28)
 	waves = waves.filter(func(w: R.Wave) -> bool: return t <= w.t_hit + R.WAVE_HIT + 0.5)
 	if r >= R.STORM_AT and t >= next_thunder_t:
 		next_thunder_t = t + THUNDER_GAP
@@ -294,7 +294,7 @@ func _draw() -> void:
 	var hint := _hint_side()
 	var fx := {"shift_fx_t": shift_fx_t, "shift_fx_dir": shift_fx_dir, "squash_t": squash_t,
 		"stop_flash_t": stop_flash_t, "thud_t": thud_t, "thud_i": thud_i, "fail_tint_t": fail_tint_t,
-		"crate3_drop_t": crate3_drop_t}
+		"crate3_drop_t": crate3_drop_t, "ridden_t": ridden_t}
 	if ship.invuln <= 0.0 or fmod(ship.invuln, 0.16) >= 0.08:
 		D.draw_ship(self, ship, t, hint, fx, false)
 	D.draw_sea(self, t)

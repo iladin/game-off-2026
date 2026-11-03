@@ -59,7 +59,7 @@ static func glow_rect(ci: CanvasItem, c: Vector2, size: Vector2, col: Color) -> 
 	ci.draw_rect(Rect2(c - size * 0.65, size * 1.3), Color(col, 0.25))
 
 
-## fx: shift_fx_t, shift_fx_dir, squash_t, stop_flash_t, thud_t, thud_i, fail_tint_t, crate3_drop_t, hint_side
+## fx: shift_fx_t, shift_fx_dir, squash_t, stop_flash_t, thud_t, thud_i, fail_tint_t, crate3_drop_t, ridden_t, hint_side
 static func draw_ship(ci: CanvasItem, s: R.Ship, t: float, hint_side: int, fx: Dictionary, top_pass: bool) -> void:
 	ci.draw_set_transform(PIVOT, s.tilt)
 	if top_pass:
@@ -71,6 +71,9 @@ static func draw_ship(ci: CanvasItem, s: R.Ship, t: float, hint_side: int, fx: D
 	var outline := PackedVector2Array(hull)
 	outline.append(hull[0])
 	ci.draw_polyline(outline, INK, 4.0)
+	var rt: float = fx.get("ridden_t", 0.0)
+	if rt > 0.0:
+		ci.draw_polyline(outline, Color(GOOD, 0.8 * minf(rt / 0.3, 1.0)), 8.0)
 	ci.draw_line(Vector2(-340, -20), Vector2(340, -20), INK, 6.0)
 	ci.draw_rect(Rect2(-338, -56, 4, 36), INK)
 	ci.draw_rect(Rect2(334, -56, 4, 36), INK)
