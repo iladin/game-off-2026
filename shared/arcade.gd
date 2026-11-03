@@ -7,6 +7,7 @@ extends Node
 ##   --game=<slug>          boot straight into a game (any folder with game.tscn)
 ##   --autoplay             the game's bot plays; after each round it restarts
 ##   --tour                 attract mode: autoplay every hub game in turn, return to hub between
+##   --hubdemo=<n>          debug: the hub shows n (0 to 8) placeholder games, every other one cleared; no Save, no registry, launching only plays `select`
 ##   --shotfile=<png>       save a screenshot after --shotframes=<n> frames (default 180), then quit
 ##
 ## Reserved keys (games must not use them): Esc = back to hub, P = pause, M = mute.
@@ -23,6 +24,8 @@ const TOUR_SECONDS := 3.0
 var games: Array[Dictionary] = []
 var current_slug: String = ""
 var autoplay: bool = false
+## Debug (--hubdemo=<n>): number of placeholder hub entries to show, 0 = off.
+var hubdemo: int = 0
 
 var _args: Dictionary = {}
 var _game: MicroGame = null
@@ -45,6 +48,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_args = parse_args(OS.get_cmdline_user_args())
 	autoplay = _args.has("autoplay") or _args.has("tour")
+	if _args.has("hubdemo"):
+		var hd := String(_args["hubdemo"])
+		hubdemo = clampi(int(hd) if hd.is_valid_int() else 8, 0, 8)
 	if _args.has("shotfile"):
 		_shot_frames = int(_args.get("shotframes", "180"))
 	games = load_registry()
