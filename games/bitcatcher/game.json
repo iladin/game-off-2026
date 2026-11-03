@@ -1,0 +1,11 @@
+{
+  "title": "Bit Catcher",
+  "tagline": "Bits fall. Shift the register to catch them.",
+  "controls": "Left or A, Right or D to shift, Down or S to drop. Touch: tap the left or right half, swipe down to drop",
+  "accent": "#A3E635",
+  "genre": "falling-bit puzzle",
+  "shift": "The bit shift: rotate your 8-bit register left or right so each falling 1 lands in a socket the target byte needs.",
+  "sense": "BIT",
+  "status": "draft",
+  "slot": 4
+}
