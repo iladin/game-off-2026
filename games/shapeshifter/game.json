@@ -1,0 +1,11 @@
+{
+  "title": "Shapeshifter",
+  "tagline": "Become the hole before the wall hits you.",
+  "controls": "Left, Up, Right or A, W, D change shape. Touch: tap a shape",
+  "accent": "#FF5FA2",
+  "genre": "reflex tunnel dodger",
+  "shift": "Shape-shifting: switch between circle, triangle and square to fit the hole in each rushing wall.",
+  "sense": "SHAPE",
+  "status": "draft",
+  "slot": 1
+}
