@@ -4,6 +4,8 @@ extends MicroGame
 
 const Rules := preload("res://games/uppercase/rules.gd")
 const KD := preload("res://games/uppercase/keys_draw.gd")
+const Tile := preload("res://games/uppercase/tile.gd")
+const SceneDraw := preload("res://games/uppercase/scene_draw.gd")
 
 const ACCENT := Color("3DDCFF")
 const GOOD := Color("FFD34D")
@@ -30,19 +32,6 @@ const SHAKE_SOFT := 4.0
 const SHAKE_HARD := 14.0
 const HITSTOP := 0.06
 const BOT_SPREAD := 24.0
-
-class Tile extends RefCounted:
-	var ch: String = "A"
-	var upper: bool = true
-	var x: float = 0.0
-	var spawn_beat: float = 0.0
-	var travel: float = 4.0
-	var age: float = 0.0
-	var judged: bool = false
-	var fx: int = 0 # 0 none, 1 hit, 2 miss/small (BAD tint), 3 passed lower
-	var fx_t: float = 0.0
-	var bot_off: float = 0.0
-	var y: float = 140.0
 
 var intro: float = 0.0
 var blip2_done: bool = false
@@ -201,7 +190,7 @@ func _move_tiles(delta: float) -> void:
 		if tl.fx_t > 0.0:
 			tl.fx_t -= delta
 		if tl.judged:
-			if (tl.fx in [1, 2] and tl.fx_t <= 0.0) or (tl.fx == 3 and tl.y > 494.0) or (tl.fx == 0 and tl.y > 494.0):
+			if (tl.fx in [1, 2] and tl.fx_t <= 0.0) or (tl.fx == 3 and tl.y > Rules.TILE_GONE_Y) or (tl.fx == 0 and tl.y > Rules.TILE_GONE_Y):
 				tiles.remove_at(i)
 			continue
 		if Rules.is_missed(tl.y):
@@ -242,23 +231,9 @@ func _bot() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if autoplay or is_finished() or intro > 0.0:
 		return
-	if event is InputEventKey:
-		var k := event as InputEventKey
-		if not k.pressed or k.echo:
-			return
-		if k.keycode == KEY_SHIFT or k.physical_keycode == KEY_SHIFT:
-			if k.location == KEY_LOCATION_LEFT:
-				_press(Rules.LEFT)
-			elif k.location == KEY_LOCATION_RIGHT:
-				_press(Rules.RIGHT)
-		elif k.keycode == KEY_F:
-			_press(Rules.LEFT)
-		elif k.keycode == KEY_J:
-			_press(Rules.RIGHT)
-	elif event is InputEventMouseButton:
-		var m := event as InputEventMouseButton
-		if m.pressed and m.button_index == MOUSE_BUTTON_LEFT:
-			_press(Rules.side_for_tap_x(m.position.x))
+	var side := SceneDraw.side_from_event(event)
+	if side >= 0:
+		_press(side)
 
 
 func _press(side: int) -> void:
@@ -338,36 +313,4 @@ func _hard_fail(tl: Tile, text: String, correct: int, pressed: int) -> void:
 
 
 func _draw() -> void:
-	KD.draw_backdrop(self, columns_x)
-	KD.draw_line_zone(self, beat - floor(beat))
-	var nxt := _nearest(false, false)
-	for tl in tiles:
-		var a := clampf(tl.age / FADE_IN, 0.0, 1.0)
-		var tint := Color(0, 0, 0, 0)
-		var up := tl.upper
-		var sq := 1.0
-		if tl.fx == 1:
-			tint = GOOD
-			sq = lerpf(1.0, SQUASH, 1.0 - clampf(tl.fx_t / SQUASH_TIME, 0.0, 1.0))
-		elif tl.fx == 2:
-			tint = BAD
-		KD.draw_tile(self, Vector2(tl.x, tl.y), tl.ch, up, a, tint, sq)
-	var lit := ""
-	var lit_up := true
-	if nxt != null:
-		lit = nxt.ch
-		lit_up = nxt.upper
-	KD.draw_strip(self, lit, lit_up, strip_flash_ch, strip_flash_t / STRIP_FLASH_TIME * 0.6)
-	var hint_side := -1
-	if Rules.hints_on(r) and nxt != null and nxt.upper:
-		hint_side = Rules.correct_shift(nxt.ch)
-	for s in 2:
-		var rect: Rect2 = LEFT_KEY if s == Rules.LEFT else RIGHT_KEY
-		var flash := false
-		if hint_flash_t > 0.0 and hint_flash_side == s:
-			flash = fmod((HINT_FLASH_TIME - hint_flash_t) / HINT_FLASH_TIME * 2.0, 1.0) < 0.6
-		KD.draw_shift_key(self, rect, s, key_down_t[s] > 0.0, hint_side == s and not flash, key_bad_t[s] > 0.0, flash, clock)
-	var prog := t / Rules.SPAWN_END
-	var ba := clampf(banner_t / 0.3, 0.0, 1.0)
-	var lost := lives if lives < LIVES else -1
-	KD.draw_hud(self, score, lives, LIVES, life_flash_t, lost, prog, banner_text, ba, 1.0 + 0.1 * (score_squash_t / 0.12))
+	SceneDraw.draw(self)

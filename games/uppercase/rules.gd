@@ -18,6 +18,7 @@ const SPLIT_COL := 5
 const BPM := 112.0
 const BEAT := 60.0 / 112.0
 const SPAWN_Y := 140.0
+const TILE_GONE_Y := 530.0 ## tile top edge is below the fall area (494) by here
 const LINE_Y := 450.0
 const PERFECT_PX := 16.0
 const GOOD_PX := 44.0

@@ -13,6 +13,8 @@ const GOOD := Color("FFD34D")
 const BAD := Color("FF3B5C")
 const SCREEN := Rect2(0, 0, 1280, 720)
 const TILE := 64.0
+const FALL_END_Y := 494.0
+const GLOW_CLIP := Rect2(0, 604, 1280, 116)
 
 
 static func text(ci: CanvasItem, s: String, center: Vector2, size: int, col: Color) -> void:
@@ -31,6 +33,16 @@ static func draw_backdrop(ci: CanvasItem, columns_x: Array[float]) -> void:
 
 
 
+## Repaints the area below the fall so tiles are cut off by their bottom edge at FALL_END_Y.
+static func draw_below_fall(ci: CanvasItem) -> void:
+	ci.draw_rect(Rect2(0, FALL_END_Y, 1280, 720 - FALL_END_Y), BG)
+	for i in range(0, 1281, 40):
+		ci.draw_line(Vector2(i, FALL_END_Y), Vector2(i, 720), TRACE, 1.0)
+	for j in range(0, 721, 40):
+		if j > FALL_END_Y:
+			ci.draw_line(Vector2(0, j), Vector2(1280, j), TRACE, 1.0)
+
+
 static func draw_line_zone(ci: CanvasItem, beat_frac: float) -> void:
 	var win := Color(ACCENT, 0.25)
 	ci.draw_line(Vector2(200, Rules.LINE_Y - Rules.GOOD_PX), Vector2(1080, Rules.LINE_Y - Rules.GOOD_PX), win, 2.0)
@@ -40,7 +52,7 @@ static func draw_line_zone(ci: CanvasItem, beat_frac: float) -> void:
 
 
 static func draw_tile(ci: CanvasItem, pos: Vector2, ch: String, upper: bool, alpha: float, tint: Color, squash: float) -> void:
-	if pos.y > 494.0:
+	if pos.y > Rules.TILE_GONE_Y:
 		return
 	ci.draw_set_transform(pos, 0.0, Vector2(squash, squash))
 	var h := TILE * 0.5
@@ -78,8 +90,9 @@ static func draw_strip(ci: CanvasItem, lit_ch: String, lit_upper: bool, flash_ch
 
 static func _glow(ci: CanvasItem, rect: Rect2, scale: float, a: float) -> void:
 	var c := rect.get_center()
-	var big := Rect2(c - rect.size * scale * 0.5, rect.size * scale).intersection(SCREEN)
-	ci.draw_rect(big, Color(ACCENT, a))
+	var big := Rect2(c - rect.size * scale * 0.5, rect.size * scale).intersection(GLOW_CLIP)
+	if big.size.x > 0.0 and big.size.y > 0.0:
+		ci.draw_rect(big, Color(ACCENT, a))
 
 
 static func draw_shift_key(ci: CanvasItem, rect: Rect2, side: int, down: bool, hint: bool, bad: bool, flash: bool, t: float) -> void:
