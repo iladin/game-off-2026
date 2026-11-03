@@ -1,0 +1,11 @@
+{
+  "title": "Cargo Shift",
+  "tagline": "The storm shifts the cargo. You shift the ballast.",
+  "controls": "Hold Left or Right (A or D) to slide the ballast. Touch: hold the left or right half, or drag the ballast",
+  "accent": "#2DD4BF",
+  "genre": "balance / physics-lite",
+  "shift": "Shifting cargo: waves list the ship and the crates slide downhill; slide the ballast the other way to keep her level.",
+  "sense": "CARGO",
+  "status": "draft",
+  "slot": 6
+}
