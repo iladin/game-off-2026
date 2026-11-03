@@ -16,26 +16,29 @@ Next id: T-0055
   accept: shots show gear 5 with a moved band, the needle in the red with the pulsing red zone and BAD tint, and the BLOWN banner with its red flash (needs T-0025 and a bot option that shifts late); findings filed as tasks.
   source: R0011 QA T-0007 (findings 1, 2)
   status R0015: unblocked (T-0044 `--sloppy`). QA saw the red zone (play-840) and BLOWN (play-900) with `SHIFT_QA="--rstart=40 --sloppy"`; findings filed as T-0051, T-0053. Left: FIFTH GEAR / HEAT banners not caught at those frames.
-- [T-0050] P2 | gameplay-engineer | cargoshift | DESIGN.md sea wording: amplitude at the deck edges
-  accept: DESIGN.md's Sea section says the swell is 0.18x under the waterline extent (x 330..950), about 0.6x at the deck edges (x 300/980) and full by x 270/1010, matching R.sea_offset; check.sh cargoshift PASS.
-  source: R0015 QA verify T-0049
-- [T-0051] P2 | gameplay-engineer | geargrind | BLOWN aftermath reads as a dead engine; TOP inside the dial
-  accept: with `SHIFT_QA="--rstart=40 --sloppy" ./scripts/shots.sh geargrind 900` the BLOWN heat shows smoke or a dimmed car through the result beat (not just a needle at idle); in a gear-5 shot (`--rstart=40`, frame 840) the TOP label sits inside the tach dial and the red zone reads clearly live or clearly inactive; check.sh geargrind PASS.
-  source: R0015 QA verify T-0044 (findings 1, 3)
-- [T-0052] P2 | gameplay-engineer | redshift | Stagger close-kill popups; DODGE popup readable
-  accept: two kills within ~0.3 s and ~40 px get popups offset so both labels read (shot with `SHIFT_QA="--rstart=40" ./scripts/shots.sh redshift 540` or a selftest on the offset rule); a DODGE popup shot shows DIM text readable on its outline; check.sh redshift PASS.
-  source: R0015 QA verify T-0048
-- [T-0053] P2 | gameplay-engineer | geargrind | Stagger stacked shift popups
-  accept: in `SHIFT_QA="--rstart=40" ./scripts/shots.sh geargrind 840` PERFECT +30 and a following +15 don't overlap (vertical stagger or merge); check.sh geargrind PASS.
-  source: R0015 QA verify T-0044 (finding 4)
-- [T-0054] P2 | gameplay-engineer | nightwatch | Clamped thumbnail eyes still show approach
-  accept: in idle frames at d 0.3 vs d 0.6-0.9 (e.g. frames 300 and 540) the thumbnail eyes stay inside the outline and look visibly bigger or closer at the later frame; check.sh nightwatch PASS.
-  source: R0015 QA verify T-0046
+- [T-0056] P2 | gameplay-engineer | geargrind | Popup slots crowd the tach dial
+  accept: with `SHIFT_QA="--rstart=40" ./scripts/shots.sh geargrind 800 820` both stacked popups stay separated (>= 40 px) and neither label overlaps the tach arc (e.g. stack upward from 520, or start higher); check.sh geargrind PASS.
+  source: R0016 QA re-verify T-0053 (finding 2); Producer shot play-820 (+15 at y~535 over the arc)
+- [T-0057] P2 | gameplay-engineer | geargrind | LEVEL gap label overlaps the checker start line
+  accept: in default shots (frame 240) and `--rstart=40` frame 1080 the LEVEL label is fully readable, clear of the checker line; check.sh geargrind PASS.
+  source: R0016 QA verify T-0051 (finding 3)
+- [T-0058] P2 | gameplay-engineer | redshift | DODGE popup: full INK through its read window, placed at the crash point
+  accept: an idle no-autoplay crash shot (`--game=redshift --shotframes=660`, try several frames) shows DODGE at full INK near the ship's crash point, not mid-fade grey at the x clamp; DESIGN.md matches; check.sh redshift PASS.
+  source: R0016 QA verify T-0052 (finding 3), T-0055 (finding 2)
+- [T-0059] P2 | gameplay-engineer | nightwatch | QA flag to hold high danger on an unwatched thumb
+  accept: a `--nwqa-hold` (or similar) flag keeps a cam unwatched without breach reset so a shot shows thumbnail eyes at d 0.8-0.95 inside the outline; the no-flag path is unchanged; check.sh nightwatch PASS.
+  source: R0016 QA verify T-0054 (findings 1, 3)
 
 ## In progress
 
 ## Done
 <!-- - [T-####] ... · R#### · <sha> -->
+- [T-0050] P2 | gameplay-engineer | cargoshift | DESIGN.md sea wording: amplitude at the deck edges · R0016 · 36ca573
+- [T-0051] P2 | gameplay-engineer | geargrind | BLOWN aftermath reads as a dead engine; TOP inside the dial · R0016 · 6b21645
+- [T-0052] P2 | gameplay-engineer | redshift | Stagger close-kill popups; DODGE popup readable · R0016 · 8719e64
+- [T-0053] P2 | gameplay-engineer | geargrind | Stagger stacked shift popups · R0016 · 68b7647
+- [T-0054] P2 | gameplay-engineer | nightwatch | Clamped thumbnail eyes still show approach · R0016 · 9a107f2
+- [T-0055] P2 | gameplay-engineer | redshift | Stagger from the earlier popup's risen position (filed and done in R0016) · R0016 · 1618e81
 - [T-0044] P2 | gameplay-engineer | geargrind | QA bot flag that misses shifts (unblocks T-0026) · R0015 · c186968
 - [T-0047] P2 | gameplay-engineer | cargoshift | Waterline on the wave; submerged hull reads · R0015 · 0773842
 - [T-0046] P2 | gameplay-engineer | nightwatch | Thumbnail outline vs creeper eyes; earlier main-view bar? · R0015 · d2d0416
