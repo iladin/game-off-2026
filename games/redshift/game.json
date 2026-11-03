@@ -1,0 +1,11 @@
+{
+  "title": "Red Shift",
+  "tagline": "Change speed, change colour. Only your colour can hit.",
+  "controls": "Up / Down (W / S) to move, Left / Right (A / D) to brake / boost, auto-fire. Touch: drag on the left to move, tap BRAKE or BOOST",
+  "accent": "#FF7A45",
+  "genre": "side-scrolling shmup",
+  "shift": "Redshift and blueshift: brake to shift your hue red, boost to shift it blue; your shots only hurt enemies of your hue.",
+  "sense": "RED",
+  "status": "draft",
+  "slot": 8
+}
