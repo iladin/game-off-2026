@@ -18,6 +18,9 @@ const FORM_SIZE := 3  # enemies released per spawn event
 const FORM_DX := 60.0  # V wings sit this far behind the leader
 const FORM_DY := 70.0  # vertical spacing inside a formation
 const FORM_GAP_MUL := 1.6  # a formation of 3 is followed by a longer pause
+const POPUP_MIN_X := 170.0  # keeps +N popups clear of the left HUD and the SOUND corner
+const POPUP_MAX_X := 1090.0
+const POPUP_MIN_Y := 102.0  # label top (pos.y - 32) stays below y 70, under the HUD bar
 const FORM_HALF := FORM_DY + 4.0  # keeps the whole formation inside the playfield
 
 var rng := RandomNumberGenerator.new()
@@ -98,6 +101,10 @@ func begin() -> void:
 	form_band = -1
 	Synth.stop_loop()
 	Synth.sfx("blip")
+
+
+func _popup_pos(p: Vector2) -> Vector2:
+	return Vector2(clampf(p.x, POPUP_MIN_X, POPUP_MAX_X), maxf(p.y, POPUP_MIN_Y))
 
 
 func _process(dt: float) -> void:
@@ -302,7 +309,7 @@ func _on_events(ev: int, streak_before: int) -> bool:
 		Synth.sfx("coin", pow(2.0, mini(sbf, 12) / 12.0))
 		n_sfx += 2
 		Juice.burst(self, kd.pos, D.BAND_COL[kd.band], 14)
-		Juice.popup(self, kd.pos - Vector2(0, 30), "+%d" % kd.pts, D.GOOD, 32)
+		Juice.popup(self, _popup_pos(kd.pos - Vector2(0, 30)), "+%d" % kd.pts, D.GOOD, 32)
 		if kd.heavy:
 			Juice.flash(Color(D.INK, 0.15), 0.1)
 			Juice.shake(10.0)
