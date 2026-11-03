@@ -192,7 +192,9 @@ static func draw_hud(ci: CanvasItem, score: int, lives: int, max_lives: int, lif
 			ci.draw_rect(q, PANEL)
 			ci.draw_rect(q, DIM, false, 2.0)
 	if banner != "" and banner_a > 0.0:
-		text(ci, 340, 56, banner, 40, Color(ACCENT, banner_a))
+		var bw: float = ThemeDB.fallback_font.get_string_size(banner, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 40).x
+		var bcx: float = clampf(340.0, 170.0 + bw * 0.5, 1090.0 - bw * 0.5)
+		text(ci, bcx, 56, banner, 40, Color(ACCENT, banner_a))
 
 
 ## Whole scene for the game node g (reads its state).
