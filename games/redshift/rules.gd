@@ -16,8 +16,10 @@ const SHIP_X := 240.0
 # Juice.popup: label top = pos.y - size, then rises POPUP_RISE over its life. The HUD owns y < HUD_BOTTOM.
 const POPUP_MIN_X := 170.0  # clear of the left HUD and the SOUND corner
 const POPUP_MAX_X := 1090.0
-const POPUP_SIZE := 32.0
+const POPUP_SIZE := 36.0  # game.gd _popup() uses these, so the clamp below matches what is drawn
 const POPUP_RISE := 70.0
+const POPUP_LIFE := 0.9
+const POPUP_FADE_DELAY := 0.55  # full alpha until here, then fade over the rest
 const HUD_BOTTOM := 64.0
 const POPUP_MIN_Y := HUD_BOTTOM + POPUP_RISE + POPUP_SIZE + 2.0  # 168: final label top = 66
 const SHIP_Y0 := 340.0

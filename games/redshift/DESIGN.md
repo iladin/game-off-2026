@@ -133,7 +133,7 @@ No sound per shot (6 shots a second would eat the 12 voices); the shots are seen
 | # | Event (trigger in game.gd) | Effect | State set there, read in drawing |
 |---|---|---|---|
 | 1 | `EV_SHIFT` | ship squashes 1.25x wide then back over 0.12 s; a ring (circle outline 6 px, band colour) expands from the ship from r 24 to 90 and fades over 0.25 s; star streaks and flame follow `k` | `shift_fx_t = 0.25` |
-| 2 | `EV_KILL` | `Juice.burst(self, pos, BAND_COL[band], 14)`; popup `+N` GOOD 32 px; heavy kill: `Juice.flash(Color(INK, 0.15), 0.1)`, `Juice.shake(10)`, hitstop 0.05 | `kill_rings` (array of `{pos, band, t = 0.2}`: an expanding outline of the enemy's shape) |
+| 2 | `EV_KILL` | `Juice.burst(self, pos, BAND_COL[band], 14)`; popup `+N` GOOD 36 px, full alpha until 0.55 s; heavy kill: `Juice.flash(Color(INK, 0.15), 0.1)`, `Juice.shake(10)`, hitstop 0.05 | `kill_rings` (array of `{pos, band, t = 0.2}`: an expanding outline of the enemy's shape) |
 | 3 | `EV_DAMAGE` | the heavy flashes INK fill for 0.06 s and squashes 1.25 to 1.0 over 0.12 s | `enemy.flash_t` kept in a game-side Dictionary keyed by the enemy |
 | 4 | `EV_BLOCK` | DIM spark at the block point | `sparks` (array of `{pos, t = 0.1}`) |
 | 5 | Crash in grace | ship tinted BAD 0.2 s; `Juice.shake(4)`; popup `DODGE` DIM 32 px at the ship | `tint_t = 0.2` |
@@ -187,7 +187,7 @@ In the model it never crashes at difficulty 0 or 1 (seeds 1-20), kills 42-55 ene
 6. **Shot `start`:** BG with the TRACE grid and stars; the lime ship (triangle, 6 px lime outline, glow) at the left middle; BRAKE pad with an ember bar, BOOST pad with a blue bar, both words readable; hue meter with lime filled; score `0`, three ember life squares; nothing in the corners (x < 150 or x > 1100, y < 70).
 7. **Shot `play-1500`** (25 s into the bot round): enemies of at least two shapes / colours on screen, shots in the ship's colour, score above 200, the ship's colour matches the nearest enemy's (or is mid-shift); HUD at least 28 px; only palette colours; no empty glyph boxes.
 8. **Code read (grep `games/redshift`):** `Synth.sfx("shift", Rules.shift_pitch(` in `_shift`; `Synth.loop(` uses `150.0, "square"` and `Rules.loop_notes(`; no `"win"` / `"lose"` sfx; `difficulty` used only via `Rules.ramp_time`; exactly one `finish(` with `true` and one with `false`; the bot path is `Rules.bot_think` into `_shift` / `follow_dir` (game.gd never writes `run.band` or `run.ship_y`); every `draw_` call lives in `redshift_draw.gd` (game.gd's `_draw` only calls its helpers); no `InputEventScreenTouch`; Esc, P and M not read.
-9. **Juice wired:** for each Juice row, the named state variable is assigned in the named trigger and read in a draw function (grep both); `Juice.flash`, `Juice.shake`, `Juice.hitstop`, `Juice.burst` and `Juice.popup` each appear in game.gd.
+9. **Juice wired:** for each Juice row, the named state variable is assigned in the named trigger and read in a draw function (grep both); `Juice.flash`, `Juice.shake`, `Juice.hitstop`, `Juice.burst` appear in game.gd; popups use game.gd `_popup` (Juice.popup look, brighter, constants from rules.gd).
 10. **Touch:** a tap at (1160, 650) boosts (shift sound, ship turns blue, loop restarts higher); a press and drag at x 400 from y 340 to y 200 moves the ship up at the key speed; a tap on the HUB or SOUND button does neither.
 
 ## Out of scope

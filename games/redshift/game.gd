@@ -104,6 +104,27 @@ func _popup_pos(p: Vector2) -> Vector2:
 	return R.popup_pos(p)
 
 
+# Same shape as Juice.popup (shared/ is read-only for this game) but holds full alpha longer
+# and uses a thicker outline so it reads against the grid. Sizes and rise come from Rules.
+func _popup(pos: Vector2, text: String, color: Color) -> void:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", int(R.POPUP_SIZE))
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1.0))
+	label.add_theme_constant_override("outline_size", 10)
+	label.position = pos - Vector2(60, R.POPUP_SIZE)
+	label.custom_minimum_size = Vector2(120, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.z_index = 50
+	add_child(label)
+	var t := label.create_tween().set_parallel(true)
+	t.tween_property(label, "position:y", label.position.y - R.POPUP_RISE, R.POPUP_LIFE).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	t.tween_property(label, "modulate:a", 0.0, R.POPUP_LIFE - R.POPUP_FADE_DELAY).set_delay(R.POPUP_FADE_DELAY)
+	t.chain().tween_callback(label.queue_free)
+
+
 func _process(dt: float) -> void:
 	anim += dt
 	queue_redraw()
@@ -306,7 +327,7 @@ func _on_events(ev: int, streak_before: int) -> bool:
 		Synth.sfx("coin", pow(2.0, mini(sbf, 12) / 12.0))
 		n_sfx += 2
 		Juice.burst(self, kd.pos, D.BAND_COL[kd.band], 14)
-		Juice.popup(self, _popup_pos(kd.pos - Vector2(0, 30)), "+%d" % kd.pts, D.GOOD, 32)
+		_popup(_popup_pos(kd.pos - Vector2(0, 30)), "+%d" % kd.pts, D.GOOD)
 		if kd.heavy:
 			Juice.flash(Color(D.INK, 0.15), 0.1)
 			Juice.shake(10.0)
@@ -325,7 +346,7 @@ func _on_events(ev: int, streak_before: int) -> bool:
 			tint_t = 0.2
 			Juice.shake(4.0)
 			Synth.sfx("miss", rng.randf_range(0.92, 1.08))
-			Juice.popup(self, _popup_pos(Vector2(R.SHIP_X, run.ship_y - 40.0)), "DODGE", D.DIM, 32)
+			_popup(_popup_pos(Vector2(R.SHIP_X, run.ship_y - 40.0)), "DODGE", D.DIM)
 		else:
 			lives -= 1
 			life_flash_t = 0.4

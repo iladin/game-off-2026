@@ -116,6 +116,13 @@ func _init() -> void:
 		_t(pp.y - R.POPUP_SIZE - R.POPUP_RISE >= R.HUD_BOTTOM, "popup top clear of HUD y=%s" % py)
 		_t(pp.x == R.POPUP_MIN_X and R.popup_pos(Vector2(2000, py)).x == R.POPUP_MAX_X, "popup x clamp")
 	_t(R.popup_pos(Vector2(500, 400)) == Vector2(500, 400), "popup unclamped passthrough")
+	# popup constants must be the ones game.gd draws with and the ones Juice.popup rises by
+	var src := FileAccess.get_file_as_string("res://games/redshift/game.gd")
+	var jsrc := FileAccess.get_file_as_string("res://shared/juice.gd")
+	_t(src.contains("R.POPUP_SIZE") and src.contains("R.POPUP_RISE") and src.contains("R.POPUP_FADE_DELAY"), "game.gd popup uses R constants")
+	_t(not src.contains("Juice.popup("), "game.gd has no second popup path")
+	_t(jsrc.contains("position.y - %d.0" % int(R.POPUP_RISE)), "POPUP_RISE matches Juice.popup rise")
+	_t(R.POPUP_FADE_DELAY > 0.25 and R.POPUP_FADE_DELAY < R.POPUP_LIFE, "popup fades later than Juice default")
 	for f in fails:
 		printerr("SELFTEST FAIL: " + f)
 	if fails.is_empty():
