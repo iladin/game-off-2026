@@ -6,6 +6,6 @@
   "genre": "auto-runner",
   "shift": "The phase shift: flip between two overlapping worlds so the platform under you exists and the wall ahead does not.",
   "sense": "PHASE",
-  "status": "draft",
+  "status": "shipped",
   "slot": 5
 }
