@@ -120,13 +120,13 @@ static func draw_minimap(ci: CanvasItem, d: float, rival_d: float) -> void:
 	ci.draw_line(Vector2(240, 500), Vector2(1040, 500), TRACE, 4.0)
 	ci.draw_rect(Rect2(1038, 490, 4, 20), GOOD)
 	var rx := 240.0 + 800.0 * rival_d / Rules.TRACK
-	ci.draw_rect(Rect2(rx - 6, 494, 12, 12), DIM)
+	ci.draw_rect(Rect2(rx - 6, 479, 12, 12), DIM)
 	var px := 240.0 + 800.0 * d / Rules.TRACK
 	ci.draw_rect(Rect2(px - 7, 493, 14, 14), ACCENT)
 
 
 static func _arc(ci: CanvasItem, r0: float, r1: float, col: Color, w: float = 24.0) -> void:
-	ci.draw_arc(TACH_C, TACH_R - 14.0, Rules.needle_angle(r0), Rules.needle_angle(r1), 32, col, w)
+	ci.draw_arc(TACH_C, TACH_R - 14.0, Rules.needle_angle(r0), Rules.needle_angle(r1), 160, col, w)
 
 
 static func draw_tach(ci: CanvasItem, shown: float, lo: float, hi: float, top_gear: bool, red_t: float, t: float, in_band: bool) -> void:
@@ -134,7 +134,7 @@ static func draw_tach(ci: CanvasItem, shown: float, lo: float, hi: float, top_ge
 	var red_col := BAD if (red_t > 0.0 and sin(TAU * 4.0 * t) > 0.0) else Color(BAD, 0.6)
 	_arc(ci, 1.0, Rules.RPM_MAX, red_col)
 	if top_gear:
-		text(ci, "TOP", TACH_C.x, 660, 28, DIM, 200.0)
+		text(ci, "TOP", 880, 700, 28, DIM, 120.0)
 	else:
 		_arc(ci, lo, hi, ACCENT)
 		var c := (lo + hi) * 0.5
@@ -169,7 +169,7 @@ static func draw_lever(ci: CanvasItem, knob_y: float, hot: bool, t: float, label
 	ci.draw_circle(Vector2(1090, knob_y), 36.0, ACCENT)
 	ci.draw_arc(Vector2(1090, knob_y), 36.0, 0.0, TAU, 32, INK, 4.0)
 	if label:
-		text(ci, "SPACE OR TAP", 1090, 706, 28, DIM, 300.0)
+		text(ci, "SPACE OR TAP", 1090, 702, 20, DIM, 150.0)
 
 
 static func draw_hud(ci: CanvasItem, score: int, lives: int, wins: int, win_k: float, life_flash: float, banner: String, banner_col: Color, banner_alpha: float) -> void:
