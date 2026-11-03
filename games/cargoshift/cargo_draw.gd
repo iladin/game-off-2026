@@ -71,9 +71,8 @@ static func draw_ship(ci: CanvasItem, s: R.Ship, t: float, hint_side: int, fx: D
 	var outline := PackedVector2Array(hull)
 	outline.append(hull[0])
 	ci.draw_polyline(outline, INK, 4.0)
-	var wy := SEA_Y - PIVOT.y
-	var wx := 340.0 - 80.0 * (wy + 20.0) / 130.0 - 2.0
-	ci.draw_line(Vector2(-wx, wy), Vector2(wx, wy), ACCENT, 2.0)
+	_draw_waterline(ci, hull, s.tilt)
+	ci.draw_set_transform(PIVOT, s.tilt)
 	var rt: float = fx.get("ridden_t", 0.0)
 	if rt > 0.0:
 		ci.draw_polyline(outline, Color(GOOD, 0.8 * minf(rt / 0.3, 1.0)), 8.0)
@@ -85,6 +84,18 @@ static func draw_ship(ci: CanvasItem, s: R.Ship, t: float, hint_side: int, fx: D
 	ci.draw_line(Vector2(0, -200), Vector2(336, -56), DIM, 2.0)
 	_draw_crates(ci, s, fx)
 	ci.draw_set_transform(Vector2.ZERO, 0.0)
+
+
+## The sea line on the hull: the world-level band at SEA_Y clipped to the rotated hull,
+## so it stays level while the hull tilts.
+static func _draw_waterline(ci: CanvasItem, hull: PackedVector2Array, tilt: float) -> void:
+	var world := PackedVector2Array()
+	for p in hull:
+		world.append(PIVOT + p.rotated(tilt))
+	var band := PackedVector2Array([Vector2(0, SEA_Y - 1.5), Vector2(1280, SEA_Y - 1.5), Vector2(1280, SEA_Y + 1.5), Vector2(0, SEA_Y + 1.5)])
+	ci.draw_set_transform(Vector2.ZERO, 0.0)
+	for part in Geometry2D.intersect_polygons(world, band):
+		ci.draw_colored_polygon(part, ACCENT)
 
 
 static func _draw_ballast(ci: CanvasItem, s: R.Ship, t: float, hint_side: int, fx: Dictionary) -> void:
