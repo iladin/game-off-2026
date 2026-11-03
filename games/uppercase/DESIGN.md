@@ -76,7 +76,7 @@ Screen map (1280 x 720):
   - Score 40 px INK centred, baseline y 56.
   - Lives: 3 squares 20 x 20 at y 70-90, centres x 608 / 640 / 672: ACCENT alive, 2 px DIM outline lost (BAD fill 0.4 s right after).
   - Page progress: 2 px TRACE outline rect x 440-840, y 100-108, ACCENT fill to `t / SPAWN_END`.
-  - Banner 40 px ACCENT centred, baseline y 168, 1.2 s, fades over the last 0.3 s.
+  - Banner 40 px ACCENT centred, baseline y 168, 1.2 s, fades over the last 0.3 s. Drawn after (above) the tiles on an opaque BG panel `Rect2(430, 124, 420, 60)` with a 2 px ACCENT outline at alpha 0.5, so tiles spawning at y 140 never cut the letters; panel clear of the progress bar (ends y 108).
 - No READY text, no other instructions (the drawn `SHIFT`, `F`, `J` key labels are the only words besides the banners).
 
 ## Sound (Synth presets/tones/loop used, per studio/VISION.md)

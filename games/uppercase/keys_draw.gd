@@ -146,4 +146,7 @@ static func draw_hud(ci: CanvasItem, score: int, lives: int, max_lives: int, lif
 	ci.draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(progress, 0.0, 1.0), bar.size.y)), ACCENT)
 	ci.draw_rect(bar, TRACE, false, 2.0)
 	if banner != "" and banner_alpha > 0.0:
+		var panel := Rect2(430, 124, 420, 60)
+		ci.draw_rect(panel, Color(BG, banner_alpha))
+		ci.draw_rect(panel, Color(ACCENT, 0.5 * banner_alpha), false, 2.0)
 		text(ci, banner, Vector2(640, 154), 40, Color(ACCENT, banner_alpha))
