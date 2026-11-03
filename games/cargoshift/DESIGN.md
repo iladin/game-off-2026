@@ -221,3 +221,6 @@ Shots: frame 240 (4.0 s, t = 3.4 s): calm swell, two crates near +-0.35, ballast
 - Tutorial text, READY screens, per-game menus; any file assets (everything is `_draw()` and Synth).
 - Symbols on screen: no arrow glyphs (pads and hints draw triangles).
 - Gamepad support (a free bonus at most).
+
+## Hull and crate layout (R0013)
+Sea and waves draw first; the hull (PANEL fill, 4 px INK outline, 2 px teal waterline) draws over them so nothing shows through. Crates are drawn at `R.spread_cargo` positions, which keep at least CRATE_GAP_PX (8 px, selftest asserts 4 px minimum) between crate rects; physics still uses the raw positions.

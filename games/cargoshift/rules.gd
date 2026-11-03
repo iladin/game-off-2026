@@ -16,6 +16,7 @@ const CRATE_MASS := 0.5
 const CARGO_HOME := [-0.35, 0.35]
 const STICK := 0.05
 const CARGO_SLIDE := 2.0
+const CRATE_GAP_PX := 8.0
 const CRATE3_AT := 20.0
 const CRATE3_X := 0.6
 const CAPSIZE := 0.45
@@ -171,6 +172,29 @@ static func rescue(s: Ship) -> void:
 static func add_crate(s: Ship, x: float) -> void:
 	s.cargo.append(x)
 	s.home.append(x)
+
+
+## Display positions with at least min_gap (deck units, centre to centre) between crates.
+static func spread_cargo(cargo: Array, min_gap: float) -> Array:
+	var idx := range(cargo.size())
+	idx.sort_custom(func(a, b): return cargo[a] < cargo[b])
+	var xs := []
+	for i in idx:
+		var x: float = cargo[i]
+		if not xs.is_empty():
+			x = maxf(x, xs[-1] + min_gap)
+		xs.append(x)
+	var over: float = xs[-1] - 1.0 if not xs.is_empty() else 0.0
+	if over > 0.0:
+		for k in xs.size():
+			xs[k] -= over
+		for k in range(xs.size() - 2, -1, -1):
+			xs[k] = minf(xs[k], xs[k + 1] - min_gap)
+	var out := []
+	out.resize(cargo.size())
+	for k in idx.size():
+		out[idx[k]] = xs[k]
+	return out
 
 
 static func steady_points(streak: int) -> int:

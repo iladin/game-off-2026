@@ -295,10 +295,10 @@ func _draw() -> void:
 	var fx := {"shift_fx_t": shift_fx_t, "shift_fx_dir": shift_fx_dir, "squash_t": squash_t,
 		"stop_flash_t": stop_flash_t, "thud_t": thud_t, "thud_i": thud_i, "fail_tint_t": fail_tint_t,
 		"crate3_drop_t": crate3_drop_t, "ridden_t": ridden_t}
-	if ship.invuln <= 0.0 or fmod(ship.invuln, 0.16) >= 0.08:
-		D.draw_ship(self, ship, t, hint, fx, false)
 	D.draw_sea(self, t)
 	D.draw_waves(self, waves, t)
+	if ship.invuln <= 0.0 or fmod(ship.invuln, 0.16) >= 0.08:
+		D.draw_ship(self, ship, t, hint, fx, false)
 	if ship.invuln <= 0.0 or fmod(ship.invuln, 0.16) >= 0.08:
 		D.draw_ship(self, ship, t, hint, fx, true)
 	if R.ramp_time(t, difficulty) >= R.STORM_AT:

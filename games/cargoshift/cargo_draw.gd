@@ -71,6 +71,9 @@ static func draw_ship(ci: CanvasItem, s: R.Ship, t: float, hint_side: int, fx: D
 	var outline := PackedVector2Array(hull)
 	outline.append(hull[0])
 	ci.draw_polyline(outline, INK, 4.0)
+	var wy := SEA_Y - PIVOT.y
+	var wx := 340.0 - 80.0 * (wy + 20.0) / 130.0 - 2.0
+	ci.draw_line(Vector2(-wx, wy), Vector2(wx, wy), ACCENT, 2.0)
 	var rt: float = fx.get("ridden_t", 0.0)
 	if rt > 0.0:
 		ci.draw_polyline(outline, Color(GOOD, 0.8 * minf(rt / 0.3, 1.0)), 8.0)
@@ -182,7 +185,7 @@ static func draw_hud(ci: CanvasItem, font: Font, score: int, lives: int, life_fl
 
 
 static func _draw_crates(ci: CanvasItem, s: R.Ship, fx: Dictionary) -> void:
-	# crates
+	var xs := R.spread_cargo(s.cargo, (CRATE_SIZE + R.CRATE_GAP_PX) / DECK_RANGE)
 	for i in s.cargo.size():
 		var cy := -56.0
 		var drop: float = fx["crate3_drop_t"]
@@ -193,7 +196,7 @@ static func _draw_crates(ci: CanvasItem, s: R.Ship, fx: Dictionary) -> void:
 		if fx["thud_t"] > 0.0 and fx["thud_i"] == i:
 			sz = Vector2(CRATE_SIZE * 0.8, CRATE_SIZE * 1.2)
 			col = BAD
-		var c := Vector2(s.cargo[i] * DECK_RANGE, cy)
+		var c := Vector2(xs[i] * DECK_RANGE, cy)
 		var rc := Rect2(c - sz * 0.5, sz)
 		ci.draw_rect(rc, PANEL)
 		ci.draw_rect(rc, col, false, 4.0)

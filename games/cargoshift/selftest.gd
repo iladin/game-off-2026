@@ -102,6 +102,14 @@ func _init() -> void:
 		var c := R.sim_round(sd, 0, true)
 		if c["capsizes"] < 1 or c["first_capsize"] < 10.0:
 			f.append("idle seed %d: %s" % [sd, str(c)])
+	var gp := (72.0 + R.CRATE_GAP_PX) / 264.0
+	for cs in [[-0.35, 0.35, 0.6], [1.0, 1.0, 1.0], [-1.0, -1.0, 0.0], [0.5, 0.5], [0.9, 1.0, 0.95]]:
+		var sp := R.spread_cargo(cs, gp)
+		var sorted := sp.duplicate()
+		sorted.sort()
+		for k in range(1, sorted.size()):
+			if sorted[k] - sorted[k - 1] < gp - 0.0001:
+				f.append("crate gap %s -> %s" % [str(cs), str(sp)])
 	# scoring and input
 	if R.steady_points(0) != 10 or R.steady_points(50) != 30 or R.shift_pitch(100) != 1.5 or R.final_score(1000, 2) != 1300:
 		f.append("scoring")
