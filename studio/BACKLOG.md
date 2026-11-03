@@ -2,7 +2,7 @@
 
 Format: `- [T-####] P0|P1|P2 | role | game-or-area | title` with an indented `accept:` line (one or more testable criteria) and optional `source:` (review, INBOX, #issue).
 P0 = broken or blocks the jam · P1 = clearly hurts a jam score · P2 = polish. The Producer keeps Ready sorted P0 → P2, then oldest first.
-Next id: T-0049
+Next id: T-0055
 
 ## Ready
 - [T-0031] P1 | release-manager | uppercase (web) | Chromium reports Left/Right Shift location
@@ -15,26 +15,33 @@ Next id: T-0049
 - [T-0026] P2 | qa-lead | geargrind | See fifth gear, redline and BLOWN (after T-0044; T-0025 done)
   accept: shots show gear 5 with a moved band, the needle in the red with the pulsing red zone and BAD tint, and the BLOWN banner with its red flash (needs T-0025 and a bot option that shifts late); findings filed as tasks.
   source: R0011 QA T-0007 (findings 1, 2)
-- [T-0044] P2 | gameplay-engineer | geargrind | QA bot flag that misses shifts (unblocks T-0026)
-  accept: a desktop-only flag (e.g. `--sloppy`, via Arcade args/SHIFT_QA) makes the Gear Grind autoplay bot shift late; with `--rstart=40` a shot shows the needle in the red zone and a later shot the BLOWN banner; no change without the flag; check.sh geargrind PASS.
-  source: R0014 QA verify T-0025
-- [T-0045] P2 | gameplay-engineer | geargrind | "RIVAL AHEAD n m" label clear of the car
-  accept: at close range (gear 5, `SHIFT_QA="--rstart=40" ./scripts/shots.sh geargrind 380`) the rival label doesn't overlap the car or the red text; check.sh geargrind PASS.
-  source: R0014 QA verify T-0025
-- [T-0046] P2 | gameplay-engineer | nightwatch | Thumbnail outline vs creeper eyes; earlier main-view bar?
-  accept: in idle shots at ~5 s and ~9 s the creeper eyes on a thumbnail don't straddle the BAD outline (reads clean, not a glitch); DESIGN.md states when the main-view bar appears (now d > 0.6, ~8 s) or CUE_BAR_D is lowered; check.sh nightwatch PASS.
-  source: R0014 QA verify T-0041
-- [T-0047] P2 | gameplay-engineer | cargoshift | Waterline on the wave; submerged hull reads
-  accept: the waterline sits within 4 px of the drawn wave surface (or the wave baseline is tied to SEA_Y), and the hull part below the line has a faint distinct tint in a storm shot; a selftest asserts the clipped line stays within SEA_Y +- 1.5 at tilts -0.4/0/0.4; check.sh cargoshift PASS.
-  source: R0014 QA verify T-0042
-- [T-0048] P2 | gameplay-engineer | redshift | Brighter kill popups
-  accept: "+N" popups read clearly against the grid at peak (palette GOOD at full alpha, fade starts later); a selftest ties R.POPUP_RISE/POPUP_SIZE to Juice.popup's values; check.sh redshift PASS.
-  source: R0014 QA verify T-0040
+  status R0015: unblocked (T-0044 `--sloppy`). QA saw the red zone (play-840) and BLOWN (play-900) with `SHIFT_QA="--rstart=40 --sloppy"`; findings filed as T-0051, T-0053. Left: FIFTH GEAR / HEAT banners not caught at those frames.
+- [T-0050] P2 | gameplay-engineer | cargoshift | DESIGN.md sea wording: amplitude at the deck edges
+  accept: DESIGN.md's Sea section says the swell is 0.18x under the waterline extent (x 330..950), about 0.6x at the deck edges (x 300/980) and full by x 270/1010, matching R.sea_offset; check.sh cargoshift PASS.
+  source: R0015 QA verify T-0049
+- [T-0051] P2 | gameplay-engineer | geargrind | BLOWN aftermath reads as a dead engine; TOP inside the dial
+  accept: with `SHIFT_QA="--rstart=40 --sloppy" ./scripts/shots.sh geargrind 900` the BLOWN heat shows smoke or a dimmed car through the result beat (not just a needle at idle); in a gear-5 shot (`--rstart=40`, frame 840) the TOP label sits inside the tach dial and the red zone reads clearly live or clearly inactive; check.sh geargrind PASS.
+  source: R0015 QA verify T-0044 (findings 1, 3)
+- [T-0052] P2 | gameplay-engineer | redshift | Stagger close-kill popups; DODGE popup readable
+  accept: two kills within ~0.3 s and ~40 px get popups offset so both labels read (shot with `SHIFT_QA="--rstart=40" ./scripts/shots.sh redshift 540` or a selftest on the offset rule); a DODGE popup shot shows DIM text readable on its outline; check.sh redshift PASS.
+  source: R0015 QA verify T-0048
+- [T-0053] P2 | gameplay-engineer | geargrind | Stagger stacked shift popups
+  accept: in `SHIFT_QA="--rstart=40" ./scripts/shots.sh geargrind 840` PERFECT +30 and a following +15 don't overlap (vertical stagger or merge); check.sh geargrind PASS.
+  source: R0015 QA verify T-0044 (finding 4)
+- [T-0054] P2 | gameplay-engineer | nightwatch | Clamped thumbnail eyes still show approach
+  accept: in idle frames at d 0.3 vs d 0.6-0.9 (e.g. frames 300 and 540) the thumbnail eyes stay inside the outline and look visibly bigger or closer at the later frame; check.sh nightwatch PASS.
+  source: R0015 QA verify T-0046
 
 ## In progress
 
 ## Done
 <!-- - [T-####] ... · R#### · <sha> -->
+- [T-0044] P2 | gameplay-engineer | geargrind | QA bot flag that misses shifts (unblocks T-0026) · R0015 · c186968
+- [T-0047] P2 | gameplay-engineer | cargoshift | Waterline on the wave; submerged hull reads · R0015 · 0773842
+- [T-0046] P2 | gameplay-engineer | nightwatch | Thumbnail outline vs creeper eyes; earlier main-view bar? · R0015 · d2d0416
+- [T-0048] P2 | gameplay-engineer | redshift | Brighter kill popups · R0015 · 107639f
+- [T-0045] P2 | gameplay-engineer | geargrind | "RIVAL AHEAD n m" label clear of the car · R0015 · 119b8c4
+- [T-0049] P2 | gameplay-engineer | cargoshift | Livelier sea at the hull edges; DESIGN.md catch-up after T-0047 · R0015 · 64e2807
 - [T-0025] P2 | platform-engineer | shared | Late-round QA flags for single-game launches · R0014 · 491ded2
 - [T-0040] P2 | gameplay-engineer | redshift | Popup rise stays below the HUD · R0014 · 6e0e62a
 - [T-0041] P2 | gameplay-engineer | nightwatch | Stronger danger cues · R0014 · 5ab0c53
