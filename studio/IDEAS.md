@@ -34,10 +34,12 @@ The Creative Director draws the slate from here at kickoff (or invents better). 
 
 ## In progress
 <!-- slug | Title | genre | since R#### -->
-- shapeshifter | Shapeshifter | reflex tunnel dodger | since R0001 (DESIGN.md + scaffold; not built yet)
+- uppercase | Upper Case | rhythm typing | since R0003 (DESIGN.md + scaffold; not built yet)
 
 ## Shipped
 <!-- slug | Title | genre | date | R#### -->
+- shapeshifter | Shapeshifter | reflex tunnel dodger | 2026-11-02 | R0003 (814c637)
+- geargrind | Gear Grind | timing drag racer | 2026-11-02 | R0003 (00e4e95)
 
 ## Cut
 <!-- slug | Title | why | date | R#### -->

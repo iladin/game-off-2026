@@ -6,8 +6,8 @@
     "since": null,
     "run": null
   },
-  "run_counter": 1,
-  "last_run": "R0001 2026-11-03T04:34Z",
+  "run_counter": 3,
+  "last_run": "R0003 2026-11-03T07:40Z",
   "last_review_run": 0,
   "closed_notified": false,
   "timezone": "America/Los_Angeles",
@@ -22,7 +22,7 @@
   "ship_bar": 6.5,
   "review_every": 6,
   "review_every_polish": 4,
-  "shipped": 0,
+  "shipped": 2,
   "models": {
     "creative_director": "opus",
     "game_designer": "opus",
