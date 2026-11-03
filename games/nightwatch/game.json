@@ -1,0 +1,11 @@
+{
+  "title": "Night Watch",
+  "tagline": "Whatever you are not watching creeps closer.",
+  "controls": "1 / 2 / 3 or Left / Right to switch feeds, Space to flash. Touch: tap a feed to watch it, tap the main view to flash",
+  "accent": "#8FA8FF",
+  "genre": "attention survival",
+  "shift": "The night shift, and shifting your gaze: the watched feed freezes, the others creep toward your door until you look and flash.",
+  "sense": "NIGHT",
+  "status": "draft",
+  "slot": 7
+}
