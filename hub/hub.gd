@@ -4,6 +4,9 @@ extends Node2D
 ## cell and an info panel with a drawn PLAY button. Logic lives in hub_rules.gd.
 ## Debug: `-- --hubdemo=8` shows placeholder entries (no Save, launching only plays select).
 ## Bit-set ceremony: a game cleared but not in Save setting "seen_cleared" flips 0 to 1 once.
+## OVERFLOW finale: one extra cell after the last bit (dim and locked until Rules.overflow_unlocked, then gold;
+## launching it runs Arcade.start_gauntlet()). Debug: `-- --qa-overflow` fakes every bit set (inert: no Save writes);
+## `-- --hubdemo=8` shows the locked cell, `-- --hubdemo=8 --qa-overflow` the unlocked one.
 ## Debug: `-- --hubempty` shows the zero-games empty state.
 ## Debug: `-- --hubdemo=8 --hubceremony=2` plays the ceremony on demo cell 3 (index 2) at 0.5 s.
 
@@ -36,6 +39,7 @@ var font: Font = ThemeDB.fallback_font
 var _entries: Array[Dictionary] = []
 var _rects: Array[Rect2] = []
 var _demo: bool = false
+var _overflow_on: bool = false
 var _head: Rect2 = Rect2()
 var _head_from: Rect2 = Rect2()
 var _head_to: Rect2 = Rect2()
@@ -62,14 +66,33 @@ func _ready() -> void:
 			e["cleared"] = Save.cleared(e["slug"])
 			e["best"] = Save.best(e["slug"])
 			_entries.append(e)
-		selected = clampi(int(Save.setting("hub_selected", 0)), 0, maxi(0, _entries.size() - 1))
+		selected = clampi(int(Save.setting("hub_selected", 0)), 0, maxi(0, _cells() - 1))
 		_plan_ceremony()
-	_rects = Rules.cell_rects(_entries.size())
+	if "--qa-overflow" in OS.get_cmdline_user_args():
+		for e in _entries:
+			e["cleared"] = true
+	var slugs: Array = []
+	var cleared := {}
+	for e in _entries:
+		slugs.append(e["slug"])
+		cleared[e["slug"]] = e["cleared"]
+	_overflow_on = Rules.overflow_unlocked(slugs, cleared)
+	selected = clampi(selected, 0, maxi(0, _cells() - 1))
+	_rects = Rules.cell_rects(_cells())
 	if not _rects.is_empty():
 		_head = _rects[selected]
 		_head_from = _head
 		_head_to = _head
 	Synth.loop(MUSIC, 96.0, "triangle", 0.10)
+
+
+## Register cells: one per game plus the OVERFLOW cell (none when there are no games).
+func _cells() -> int:
+	return _entries.size() + 1 if not _entries.is_empty() else 0
+
+
+func _is_overflow(i: int) -> bool:
+	return i == _entries.size() and not _entries.is_empty()
 
 
 func _plan_ceremony() -> void:
@@ -139,7 +162,7 @@ func _select(i: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var n := _entries.size()
+	var n := _cells()
 	if n == 0:
 		return
 	if event.is_action_pressed("ui_right") or _key(event, KEY_D):
@@ -159,7 +182,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				_open()
 			else:
 				_select(i)
-		elif _play_rect().has_point(event.position):
+		elif _can_play() and _play_rect().has_point(event.position):
 			_open()
 
 
@@ -167,9 +190,20 @@ func _key(event: InputEvent, key: Key) -> bool:
 	return event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == key
 
 
+func _can_play() -> bool:
+	return not _is_overflow(selected) or _overflow_on
+
+
 func _open() -> void:
+	if not _can_play():
+		Synth.sfx("back")
+		return
 	Synth.sfx("select")
 	if _demo:
+		return
+	if _is_overflow(selected):
+		Save.set_setting("hub_selected", selected)
+		Arcade.start_gauntlet()
 		return
 	Save.set_setting("hub_selected", selected)
 	Arcade.launch(_entries[selected]["slug"])
@@ -204,6 +238,7 @@ func _draw() -> void:
 		return
 	for i in n:
 		_cell(i)
+	_overflow_cell()
 	_bus()
 	_read_head()
 	_info()
@@ -243,6 +278,27 @@ func _cell(i: int) -> void:
 	draw_rect(Rect2(r.position + Vector2(0, r.size.y - 6), Vector2(r.size.x, 6)), accent)
 
 
+func _overflow_cell() -> void:
+	var r := _rects[_entries.size()]
+	var col := GOOD if _overflow_on else DIM
+	draw_rect(r, PANEL)
+	draw_rect(r, GOOD if _overflow_on else DIM, false, 2.0)
+	_text_left("%d" % (_entries.size() + 1), r.position + Vector2(10, 30), 22, DIM)
+	var c := r.position + Vector2(60, 68)
+	if _overflow_on:
+		var pulse := 0.5 + 0.5 * sin(t * TAU * 1.5)
+		draw_arc(c, 34.0 + 3.0 * pulse, 0.0, TAU, 40, Color(GOOD, 0.25), 8.0)
+	draw_arc(c, 30.0, 0.0, TAU, 40, col, 5.0)
+	draw_line(c + Vector2(-14, 0), c + Vector2(14, 0), col, 5.0)
+	draw_line(c + Vector2(0, -14), c + Vector2(0, 14), col, 5.0)
+	var word := "OVERFLOW"
+	var sz := 22
+	while sz > 12 and font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x > r.size.x - 8.0:
+		sz -= 1
+	_text(word, r.position + Vector2(60, 118), sz, GOOD if _overflow_on else DIM)
+	draw_rect(Rect2(r.position + Vector2(0, r.size.y - 6), Vector2(r.size.x, 6)), GOOD if _overflow_on else TRACE)
+
+
 func _bus() -> void:
 	draw_line(Vector2(0, BUS_Y), Vector2(1280, BUS_Y), TRACE, 2.0)
 	for i in 9:
@@ -251,7 +307,7 @@ func _bus() -> void:
 
 
 func _read_head() -> void:
-	var accent: Color = _entries[selected]["accent"]
+	var accent: Color = GOOD if _is_overflow(selected) else _entries[selected]["accent"]
 	var pulse := 0.5 + 0.5 * sin(t * TAU * 3.0)
 	var r := _head.grow(8.0 + 2.0 * pulse)
 	var col := Color(accent, 0.7 + 0.3 * pulse)
@@ -272,7 +328,29 @@ func _read_head() -> void:
 	draw_line(br, br + Vector2(0, -l), col, w)
 
 
+func _info_overflow() -> void:
+	draw_rect(PANEL_RECT, PANEL)
+	draw_rect(PANEL_RECT, TRACE, false, 2.0)
+	draw_rect(Rect2(PANEL_RECT.position, Vector2(6, PANEL_RECT.size.y)), GOOD if _overflow_on else DIM)
+	var x := PANEL_RECT.position.x + 32.0
+	_text_left("OVERFLOW", Vector2(x, 496), 48, GOOD if _overflow_on else DIM)
+	if not _overflow_on:
+		_text_left("LOCKED", Vector2(x, 540), 28, INK)
+		_text_left("Set every bit to open the finale", Vector2(x, 578), 24, DIM)
+		return
+	_text_left("Every game, one run, no breaks", Vector2(x, 540), 28, INK)
+	_text_left("8 seconds each   3 lives", Vector2(x, 578), 24, DIM)
+	var best := 0 if _demo else Save.best("overflow")
+	_text_left("BEST %d" % best if best > 0 else "NEW", Vector2(x, 630), 28, GOOD if best > 0 else DIM)
+	var pr := _play_rect()
+	draw_rect(pr, GOOD)
+	_text("PLAY", pr.get_center(), 36, BG)
+
+
 func _info() -> void:
+	if _is_overflow(selected):
+		_info_overflow()
+		return
 	var e := _entries[selected]
 	var accent: Color = e["accent"]
 	draw_rect(PANEL_RECT, PANEL)

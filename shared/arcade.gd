@@ -8,7 +8,12 @@ extends Node
 ##   --autoplay             the game's bot plays; after each round it restarts
 ##   --tour                 attract mode: autoplay every hub game in turn, return to hub between
 ##   --hubdemo=<n>          debug: the hub shows n (0 to 8) placeholder games, every other one cleared; no Save, no registry, launching only plays `select`
+##   --gauntlet             boot straight into the OVERFLOW gauntlet (combine with --autoplay for a bot run)
 ##   --shotfile=<png>       save a screenshot after --shotframes=<n> frames (default 180), then quit
+##
+## OVERFLOW gauntlet (additive): `Arcade.start_gauntlet()` runs every hub game in slot order at difficulty 1,
+## 8 s each, 3 lives (shared/gauntlet_rules.gd), records the sum under slug "overflow" and shows one result card.
+## Log lines: "ARCADE gauntlet game <slug> <i>/<n>", "ARCADE gauntlet pass|life <slug> lives=<l> score=<s>", "ARCADE gauntlet done ...".
 ##
 ## Reserved keys (games must not use them): Esc = back to hub, P = pause, M = mute.
 ## Log lines start with "ARCADE " so check.sh can assert on them.
@@ -19,6 +24,9 @@ const FADE_TIME := 0.12
 const RESULT_INPUT_DELAY := 0.6
 const AUTOPLAY_RESTART_DELAY := 0.5
 const TOUR_SECONDS := 3.0
+const GauntletRules := preload("res://shared/gauntlet_rules.gd")
+const OVERFLOW_SLUG := "overflow"
+const GOOD := Color("ffd34d")
 
 ## Hub games in order: [{slug, title, tagline, controls, accent: Color, ...game.json}]
 var games: Array[Dictionary] = []
@@ -41,6 +49,10 @@ var _result_best: Label
 var _result_shown_at: float = -1.0
 var _shot_frames: int = -1
 var _frames: int = 0
+var _gauntlet: Dictionary = {}
+var _gauntlet_game: MicroGame = null
+var _gauntlet_label: Label
+var _gauntlet_lives: Control
 var _font: Font = ThemeDB.fallback_font
 
 
@@ -70,7 +82,9 @@ static func parse_args(args: PackedStringArray) -> Dictionary:
 ## Called once by main.gd (deferred).
 func boot() -> void:
 	print("ARCADE boot games=%d args=%s" % [games.size(), _args])
-	if _args.has("game"):
+	if _args.has("gauntlet"):
+		start_gauntlet()
+	elif _args.has("game"):
 		launch(String(_args["game"]))
 	elif _args.has("tour"):
 		_tour()
@@ -119,6 +133,10 @@ func info_for(slug: String) -> Dictionary:
 
 func to_hub() -> void:
 	current_slug = ""
+	_gauntlet = {}
+	_gauntlet_game = null
+	_gauntlet_label.visible = false
+	_gauntlet_lives.visible = false
 	await _fade_out()
 	var scene: PackedScene = load(HUB_SCENE)
 	_swap(scene.instantiate())
@@ -151,6 +169,108 @@ func launch(slug: String) -> void:
 	print("ARCADE launch %s autoplay=%s" % [slug, autoplay])
 	g.begin()
 	await _fade_in()
+
+
+# --- OVERFLOW gauntlet ---------------------------------------------------------------
+
+func start_gauntlet() -> void:
+	if games.is_empty():
+		print("ARCADE gauntlet: no games")
+		to_hub()
+		return
+	_gauntlet = GauntletRules.new_state(games.size())
+	_gauntlet_game = null
+	current_slug = OVERFLOW_SLUG
+	print("ARCADE gauntlet start n=%d" % games.size())
+	await _gauntlet_next()
+
+
+func _gauntlet_next() -> void:
+	if GauntletRules.is_done(_gauntlet):
+		_gauntlet_end()
+		return
+	var i: int = _gauntlet["index"]
+	var slug: String = games[i]["slug"]
+	await _fade_out()
+	if _gauntlet.is_empty():
+		return # left for the hub meanwhile
+	var node: Node = (load("res://games/%s/game.tscn" % slug) as PackedScene).instantiate()
+	var g: MicroGame = node as MicroGame
+	if g == null:
+		node.free()
+		_gauntlet = GauntletRules.on_finish(_gauntlet, 0, false)
+		await _gauntlet_next()
+		return
+	g.slug = slug
+	g.autoplay = autoplay
+	g.difficulty = GauntletRules.DIFFICULTY
+	g.finished.connect(_on_gauntlet_finished.bind(g))
+	_gauntlet_game = g
+	current_slug = OVERFLOW_SLUG
+	_swap(g)
+	_result.visible = false
+	_back_btn.visible = true
+	_gauntlet_label.visible = true
+	_gauntlet_lives.visible = true
+	_gauntlet_lives.queue_redraw()
+	print("ARCADE gauntlet game %s %d/%d" % [slug, i + 1, games.size()])
+	g.begin()
+	await _fade_in()
+
+
+func _on_gauntlet_finished(score: int, won: bool, g: MicroGame) -> void:
+	if g != _gauntlet_game or _gauntlet.is_empty():
+		return
+	_gauntlet_game = null
+	_gauntlet = GauntletRules.on_finish(_gauntlet, score, won)
+	print("ARCADE gauntlet %s %s lives=%d score=%d" % ["pass" if won else "life", g.slug, _gauntlet["lives"], GauntletRules.total(_gauntlet)])
+	Synth.sfx("coin" if won else "hit")
+	g.process_mode = Node.PROCESS_MODE_DISABLED
+	await _gauntlet_next()
+
+
+func _gauntlet_tick(delta: float) -> void:
+	if _gauntlet.is_empty() or _gauntlet_game == null or get_tree().paused:
+		return
+	var gs: Variant = _gauntlet_game.get("score")
+	var before: int = _gauntlet["index"]
+	_gauntlet = GauntletRules.tick(_gauntlet, delta, int(gs) if gs is int or gs is float else 0)
+	_gauntlet_label.text = GauntletRules.status(_gauntlet)
+	_gauntlet_lives.queue_redraw()
+	if int(_gauntlet["index"]) != before:
+		var g := _gauntlet_game
+		_gauntlet_game = null
+		print("ARCADE gauntlet pass %s lives=%d score=%d" % [g.slug, _gauntlet["lives"], GauntletRules.total(_gauntlet)])
+		Synth.sfx("coin")
+		g.process_mode = Node.PROCESS_MODE_DISABLED
+		_gauntlet_next()
+
+
+func _draw_gauntlet_lives() -> void:
+	if _gauntlet.is_empty():
+		return
+	for i in GauntletRules.LIVES:
+		var r := Rect2(Vector2(400 + i * 30, 122), Vector2(20, 20))
+		if i < int(_gauntlet["lives"]):
+			_gauntlet_lives.draw_rect(r, GOOD)
+		else:
+			_gauntlet_lives.draw_rect(r, Color(GOOD, 0.35), false, 2.0)
+
+
+func _gauntlet_end() -> void:
+	var score := GauntletRules.total(_gauntlet)
+	var won := GauntletRules.completed(_gauntlet)
+	var new_best := Save.record(OVERFLOW_SLUG, score, won)
+	print("ARCADE gauntlet done score=%d won=%s best=%d" % [score, won, Save.best(OVERFLOW_SLUG)])
+	_gauntlet = {}
+	_gauntlet_game = null
+	_gauntlet_label.visible = false
+	_gauntlet_lives.visible = false
+	Synth.stop_loop()
+	Synth.sfx("win" if won else "lose")
+	if autoplay:
+		return
+	_show_result(OVERFLOW_SLUG, score, won, new_best)
 
 
 func _swap(node: Node) -> void:
@@ -248,6 +368,9 @@ func _toggle_mute() -> void:
 
 func _retry() -> void:
 	Synth.sfx("select")
+	if current_slug == OVERFLOW_SLUG:
+		start_gauntlet()
+		return
 	launch(current_slug)
 
 
@@ -257,7 +380,8 @@ func _result_age() -> float:
 
 # --- Screenshots -----------------------------------------------------------------
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_gauntlet_tick(delta)
 	if _shot_frames < 0:
 		return
 	_frames += 1
@@ -290,6 +414,16 @@ func _build_ui() -> void:
 		Synth.sfx("back")
 		to_hub())
 	_back_btn.visible = false
+	_gauntlet_label = _make_label("", 28, GOOD)
+	_gauntlet_label.position = Vector2(340, 112)
+	_gauntlet_label.size = Vector2(600, 44)
+	_gauntlet_label.visible = false
+	_hud.add_child(_gauntlet_label)
+	_gauntlet_lives = Control.new()
+	_gauntlet_lives.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_gauntlet_lives.visible = false
+	_gauntlet_lives.draw.connect(_draw_gauntlet_lives)
+	_hud.add_child(_gauntlet_lives)
 	_mute_btn = _make_button("SOUND ON", Vector2(150, 48))
 	_mute_btn.position = Vector2(1280 - 16 - 150, 12)
 	_hud.add_child(_mute_btn)
@@ -305,8 +439,13 @@ func _build_ui() -> void:
 	_result = _make_panel(Color(0, 0, 0, 0.72))
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_CENTER)
-	box.position = Vector2(1280, 720) * 0.5 - Vector2(300, 170)
 	box.custom_minimum_size = Vector2(600, 340)
+	box.offset_left = -300.0
+	box.offset_right = 300.0
+	box.offset_top = -170.0
+	box.offset_bottom = 170.0
+	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	box.grow_vertical = Control.GROW_DIRECTION_BOTH
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 14)
 	_result.add_child(box)
@@ -342,6 +481,8 @@ func _build_ui() -> void:
 
 func _show_result(slug: String, score: int, won: bool, new_best: bool) -> void:
 	var info := info_for(slug)
+	if slug == OVERFLOW_SLUG:
+		info = {"title": "OVERFLOW", "accent": GOOD}
 	_result_title.text = ("CLEAR!" if won else "GAME OVER")
 	_result_title.add_theme_color_override("font_color", info["accent"])
 	_result_score.text = "%s:  %d" % [info["title"], score]

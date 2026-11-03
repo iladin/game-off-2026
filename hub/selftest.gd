@@ -2,6 +2,7 @@ extends SceneTree
 ## Run: $GODOT --headless --path . --script res://hub/selftest.gd
 
 const Rules := preload("res://hub/hub_rules.gd")
+const G := preload("res://shared/gauntlet_rules.gd")
 
 
 func _init() -> void:
@@ -36,5 +37,25 @@ func _init() -> void:
 	assert(Rules.cell_at(r, r[3].get_center()) == 3)
 	assert(Rules.cell_at(r, Vector2(5, 5)) == -1)
 	assert(Rules.demo_entries(8).size() == 8)
+	var r9 := Rules.cell_rects(9)
+	assert(r9[0].position.x >= 16.0 and r9[8].end.x <= 1264.0)
+	var g := G.new_state(3)
+	assert(g["lives"] == 3 and g["index"] == 0 and not G.is_done(g))
+	G.tick(g, 7.9, 50)
+	assert(g["index"] == 0 and absf(G.time_left(g) - 0.1) < 0.001)
+	G.tick(g, 0.2, 50) # 8 s survived: pass
+	assert(g["index"] == 1 and g["passed"] == 1 and G.total(g) == 50 + G.PASS_BONUS and G.PASS_BONUS == 0 and g["elapsed"] == 0.0)
+	G.on_finish(g, 30, false) # early loss: life gone, next game
+	assert(g["lives"] == 2 and g["index"] == 2 and G.total(g) == 80 and not G.is_done(g))
+	G.on_finish(g, 10, true) # early win counts as a pass; last game done
+	assert(G.is_done(g) and G.completed(g) and g["passed"] == 2 and G.total(g) == 90)
+	G.tick(g, 100.0, 999) # nothing changes once done
+	assert(G.total(g) == 90)
+	var h := G.new_state(8)
+	for i in 3:
+		G.on_finish(h, 0, false)
+	assert(G.is_done(h) and not G.completed(h) and h["index"] == 3 and h["lives"] == 0)
+	assert(G.is_done(G.new_state(0)))
+	assert(G.status(G.new_state(8)) == "GAME 1 OF 8   8.0")
 	print("SELFTEST OK")
 	quit()
