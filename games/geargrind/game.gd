@@ -92,6 +92,8 @@ var clock: float = 0.0
 var go_t: float = 0.0
 var shifted_once: bool = false
 var dead: bool = false
+var pop_slot: int = -1
+var pop_at: float = -100.0
 
 
 ## QA only (desktop, never on web): `--sloppy` in the launch args or SHIFT_QA makes the autoplay bot shift late.
@@ -104,6 +106,8 @@ func _qa_sloppy() -> bool:
 func begin() -> void:
 	sloppy = autoplay and _qa_sloppy()
 	elapsed = 0.0
+	pop_at = -100.0
+	pop_slot = -1
 	intro = INTRO_TIME
 	blip2_done = false
 	state = STAGING
@@ -319,7 +323,10 @@ func _shift() -> void:
 	knob_t = KNOB_TIME
 	squat_t = SQUAT_TIME
 	digit_t = 0.2
-	var at := Vector2(640, 520)
+	var now := elapsed
+	pop_slot = Rules.popup_slot(pop_slot, now - pop_at)
+	var at := Vector2(640, Rules.popup_slot_y(520.0, pop_slot))
+	pop_at = now
 	match j:
 		Rules.PERFECT:
 			Synth.sfx("coin", pow(2.0, mini(perfects, 12) / 12.0))

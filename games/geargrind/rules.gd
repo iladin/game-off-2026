@@ -176,3 +176,32 @@ static func phase_name(r: float) -> String:
 	if r < GEARS_5_AT:
 		return "BAND MOVES"
 	return "FIFTH GEAR"
+
+
+const POP_RISE := 70.0  # must match Juice.popup: rises 70 px, cubic ease-out, over 0.7 s
+const POP_RISE_TIME := 0.7
+const POP_LIFE := 0.95  # rise + fade; after this the earlier popup is gone
+const POP_STEP := 40.0  # min vertical gap between stacked popup baselines
+
+
+## Current baseline y of a popup born at birth_y, age seconds ago (cubic ease-out rise).
+static func popup_y_now(birth_y: float, age: float) -> float:
+	var k := clampf(age / POP_RISE_TIME, 0.0, 1.0)
+	return birth_y - POP_RISE * (1.0 - pow(1.0 - k, 3.0))
+
+
+const POP_SLOTS := 3
+
+
+## Popups born within POP_LIFE of the previous one take the next slot down (slot * STEP below
+## base). Every popup rises along the same curve, so slots stay STEP apart for their whole life
+## (a gap measured only at birth, or from the earlier one's current y, vanishes as both rise).
+## An expired or missing previous popup resets to slot 0. After the last slot it wraps to 0.
+static func popup_slot(prev_slot: int, prev_age: float) -> int:
+	if prev_slot < 0 or prev_age < 0.0 or prev_age >= POP_LIFE:
+		return 0
+	return (prev_slot + 1) % POP_SLOTS
+
+
+static func popup_slot_y(base_y: float, slot: int) -> float:
+	return base_y + POP_STEP * float(slot)

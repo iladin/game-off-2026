@@ -232,3 +232,8 @@ Files (target ~600 lines total, each under 300):
 
 ## QA note: `--sloppy`
 Desktop only (ignored on web), autoplay only. `--sloppy` (launch arg, or `SHIFT_QA="--rstart=40 --sloppy"`) makes the bot shift late: heat 1 shifts only after 0.4 s in the red zone (needle pinned red, LATE shifts), later heats never shift so the engine BLOWS. Without the flag nothing changes. Example: `SHIFT_QA="--rstart=40 --sloppy" ./scripts/shots.sh geargrind 150 400`.
+
+## Popup stagger and inactive red zone (T-0053)
+- Shift popups no longer stack: `Rules.popup_slot(prev_slot, prev_age)` gives a popup born within `POP_LIFE` (0.95 s) of the previous one the next of 3 slots, `Rules.popup_slot_y` puts slot k at 520 + 40k. All popups rise on the same curve (70 px, 0.7 s, cubic ease-out), so slots stay 40 px apart for their whole life. A gap measured at birth from the earlier popup's birth or current y fails, because both rise to the same height (seen in QA). Age uses the game's accumulated `elapsed`, not wall clock. Selftest asserts slot choice and that the gap holds at later times. Shot: `SHIFT_QA="--rstart=40" ./scripts/shots.sh geargrind 840`.
+- Inactive tach red zone (top gear or dead engine): DIM at alpha 0.5 plus 2 px DIM outline arcs on its edges, so it no longer reads as the TRACE base arc. Check shots 960 / 1020 with `--rstart=40`.
+- Popup age uses the game's accumulated `elapsed` (game time), not wall clock, so it matches Juice's tweens under `--fixed-fps` and pause.

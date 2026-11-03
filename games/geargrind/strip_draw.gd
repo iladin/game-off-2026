@@ -142,8 +142,12 @@ static func draw_tach(ci: CanvasItem, shown: float, lo: float, hi: float, top_ge
 	_arc(ci, 0.0, 1.0, TRACE)
 	var red_col := BAD if (red_t > 0.0 and sin(TAU * 4.0 * t) > 0.0) else Color(BAD, 0.6)
 	if top_gear or dead:
-		red_col = Color(DIM, 0.35)  # inactive: nothing to blow in the top gear / engine already dead
+		red_col = Color(DIM, 0.5)  # inactive: nothing to blow in the top gear / engine already dead
 	_arc(ci, 1.0, Rules.RPM_MAX, red_col)
+	if top_gear or dead:  # DIM outline edges so it never reads as the TRACE base arc
+		_arc(ci, 1.0, Rules.RPM_MAX, DIM, 2.0)
+		for rr in [TACH_R - 14.0 - 12.0, TACH_R - 14.0 + 12.0]:
+			ci.draw_arc(TACH_C, rr, Rules.needle_angle(1.0), Rules.needle_angle(Rules.RPM_MAX), 60, DIM, 2.0)
 	if top_gear:
 		text(ci, "TOP", TACH_C.x, TACH_C.y - 60.0, 28, INK, 120.0)
 	else:

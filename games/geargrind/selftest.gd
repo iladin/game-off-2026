@@ -38,6 +38,15 @@ func _init() -> void:
 	var rt := Rules.rival_time(4, 20.0)
 	if Rules.rival_dist(rt, rt) != Rules.TRACK: fails.append("rival reaches TRACK at T")
 	if Rules.final_score(100, 2) != 200: fails.append("final score")
+	if Rules.popup_slot(-1, 0.0) != 0 or Rules.popup_slot(2, 5.0) != 0 or Rules.popup_slot(1, -1.0) != 0: fails.append("popup slot reset")
+	if Rules.popup_slot(0, 0.3) != 1 or Rules.popup_slot(1, 0.9) != 2 or Rules.popup_slot(2, 0.5) != 0: fails.append("popup slot chain")
+	if Rules.popup_slot_y(520.0, 0) != 520.0 or Rules.popup_slot_y(520.0, 2) != 600.0: fails.append("popup slot y")
+	for slot in [0, 1]:  # successive popups stay a full STEP apart as both keep rising
+		for age in [0.0, 0.1, 0.37, 0.6, 0.9]:
+			var ny := Rules.popup_slot_y(520.0, Rules.popup_slot(slot, age))
+			var py := Rules.popup_slot_y(520.0, slot)
+			for dt in [0.0, 0.1, 0.3, 0.6]:
+				if Rules.popup_y_now(ny, dt) - Rules.popup_y_now(py, age + dt) < Rules.POP_STEP - 0.01: fails.append("popup gap %s %s %s" % [slot, age, dt])
 	for f in fails:
 		printerr("SELFTEST FAIL: " + f)
 	if fails.is_empty():
