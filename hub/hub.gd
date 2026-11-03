@@ -3,6 +3,8 @@ extends Node2D
 ## Arcade.games, a 0/1 digit per cell (1 = cleared), a read head on the selected
 ## cell and an info panel with a drawn PLAY button. Logic lives in hub_rules.gd.
 ## Debug: `-- --hubdemo=8` shows placeholder entries (no Save, launching only plays select).
+## Bit-set ceremony: a game cleared but not in Save setting "seen_cleared" flips 0 to 1 once.
+## Debug: `-- --hubdemo=8 --hubceremony=2` plays the ceremony on demo cell 3 (index 2) at 0.5 s.
 
 const Rules := preload("res://hub/hub_rules.gd")
 
@@ -20,6 +22,9 @@ const DOT_SPACING := 160.0
 const HEAD_TIME := 0.15
 const PANEL_RECT := Rect2(64, 440, 1152, 236)
 const PLAY_SIZE := Vector2(260, 80)
+const FLIP_DELAY := 0.5
+const FLIP_TIME := 0.25
+const FLIP_GAP := 0.6
 const MUSIC := [57, 0, 64, 0, 60, 0, 64, 67, 57, 0, 64, 0, 62, 0, 60, 59]
 
 var selected: int = 0
@@ -32,12 +37,20 @@ var _head: Rect2 = Rect2()
 var _head_from: Rect2 = Rect2()
 var _head_to: Rect2 = Rect2()
 var _head_t: float = 1.0
+var _flips: Dictionary = {} ## cell index -> t when its flip starts
+var _flip_done: Dictionary = {} ## cell index -> true once the 1 has landed (burst and coin played)
 
 
 func _ready() -> void:
 	_demo = Arcade.hubdemo > 0
 	if _demo:
 		_entries = Rules.demo_entries(Arcade.hubdemo)
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--hubceremony="):
+				var ci := int(a.get_slice("=", 1))
+				if ci >= 0 and ci < _entries.size():
+					_entries[ci]["cleared"] = true
+					_flips[ci] = FLIP_DELAY
 	else:
 		for g in Arcade.games:
 			var e: Dictionary = g.duplicate()
@@ -45,6 +58,7 @@ func _ready() -> void:
 			e["best"] = Save.best(e["slug"])
 			_entries.append(e)
 		selected = clampi(int(Save.setting("hub_selected", 0)), 0, maxi(0, _entries.size() - 1))
+		_plan_ceremony()
 	_rects = Rules.cell_rects(_entries.size())
 	if not _rects.is_empty():
 		_head = _rects[selected]
@@ -53,8 +67,53 @@ func _ready() -> void:
 	Synth.loop(MUSIC, 96.0, "triangle", 0.10)
 
 
+func _plan_ceremony() -> void:
+	var slugs: Array = []
+	var cleared := {}
+	for e in _entries:
+		slugs.append(e["slug"])
+		cleared[e["slug"]] = e["cleared"]
+	var seen: Array = Save.setting("seen_cleared", [])
+	var fresh := Rules.newly_cleared(slugs, cleared, seen)
+	var n := 0
+	for slug in fresh:
+		_flips[slugs.find(slug)] = FLIP_DELAY + n * FLIP_GAP
+		n += 1
+
+
+## 0..1 progress of cell i's flip, or -1 when it has none (or it is finished).
+func _flip_p(i: int) -> float:
+	if not _flips.has(i) or _flip_done.has(i):
+		return -1.0
+	return clampf((t - float(_flips[i])) / FLIP_TIME, 0.0, 1.0) if t >= float(_flips[i]) else 0.0
+
+
+func _bit_on(i: int) -> bool:
+	return _entries[i]["cleared"] and not (_flips.has(i) and not _flip_done.has(i))
+
+
+func _tick_flips() -> void:
+	for i in _flips.keys():
+		if _flip_done.has(i):
+			continue
+		var st: float = _flips[i]
+		if t >= st and not _flip_done.has(-1 - i):
+			_flip_done[-1 - i] = true # started: play shift once
+			Synth.sfx("shift")
+			if not _demo: # recorded only now that the ceremony really starts, so it never replays
+				var seen: Array = Save.setting("seen_cleared", [])
+				Save.set_setting("seen_cleared", Rules.merge_seen(seen, [_entries[i]["slug"]]))
+		if t >= st + FLIP_TIME * 0.5 and not _flip_done.has(-1000 - i):
+			_flip_done[-1000 - i] = true # the 1 appears: coin and burst
+			Synth.sfx("coin")
+			Juice.burst(self, _rects[i].position + Vector2(60, 68), _entries[i]["accent"], 18, 300.0)
+		if t >= st + FLIP_TIME:
+			_flip_done[i] = true
+
+
 func _process(delta: float) -> void:
 	t += delta
+	_tick_flips()
 	if _head_t < 1.0:
 		_head_t = minf(1.0, _head_t + delta / HEAD_TIME)
 		var k := 1.0 - pow(1.0 - _head_t, 3.0)
@@ -125,8 +184,8 @@ func _draw() -> void:
 		draw_line(Vector2(0, y), Vector2(1280, y), TRACE, 1.0)
 	var n := _entries.size()
 	var k := 0
-	for e in _entries:
-		if e["cleared"]:
+	for j in n:
+		if _bit_on(j):
 			k += 1
 	_text("SHIFT REGISTER", Vector2(640, 110), 64, INK)
 	_text("%d OF %d BITS SET" % [k, n], Vector2(640, 170), 28, DIM)
@@ -149,12 +208,22 @@ func _cell(i: int) -> void:
 	var e := _entries[i]
 	var r := _rects[i]
 	var accent: Color = e["accent"]
-	var on: bool = e["cleared"]
+	var on: bool = _bit_on(i)
+	var p := _flip_p(i)
 	draw_rect(r, PANEL)
 	draw_rect(r, TRACE, false, 2.0)
 	_text_left("%d" % (i + 1), r.position + Vector2(10, 30), 22, DIM)
 	var c := r.position + Vector2(60, 68)
-	if on:
+	if p >= 0.0:
+		var sy := absf(1.0 - 2.0 * p) # squash to a line at p 0.5, then back up
+		draw_set_transform(Vector2(0, c.y * (1.0 - sy)), 0.0, Vector2(1, sy))
+		if p < 0.5:
+			_digit("0", c, 64, DIM)
+		else:
+			_digit("1", c, 64 * 1.3, Color(accent, 0.25))
+			_digit("1", c, 64, accent)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	elif on:
 		_digit("1", c, 64 * 1.6, Color(accent, 0.10))
 		_digit("1", c, 64 * 1.3, Color(accent, 0.25))
 		_digit("1", c, 64, accent)
@@ -210,7 +279,7 @@ func _info() -> void:
 	var best: int = e["best"]
 	var line := "BEST %d" % best if best > 0 else "NEW"
 	_text_left(line, Vector2(x, 630), 28, GOOD if best > 0 else DIM)
-	if e["cleared"]:
+	if _bit_on(selected):
 		var w := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
 		_text_left("CLEARED", Vector2(x + w + 32.0, 630), 28, GOOD)
 	var pr := _play_rect()

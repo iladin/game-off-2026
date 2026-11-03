@@ -17,6 +17,13 @@ func _init() -> void:
 	assert(Rules.overflow_unlocked(five, all5))
 	assert(not Rules.overflow_unlocked(five, all4))
 	assert(not Rules.overflow_unlocked([], {}))
+	var nc := Rules.newly_cleared(five, {"b": true, "d": true, "e": false}, ["d"])
+	assert(nc == ["b"])
+	assert(Rules.newly_cleared(five, {"b": true}, ["b"]).is_empty())
+	assert(Rules.newly_cleared(five, {}, []).is_empty())
+	assert(Rules.newly_cleared(five, {"a": true, "c": true}, []) == ["a", "c"])
+	assert(Rules.newly_cleared(["a"], {"zz": true}, []).is_empty())
+	assert(Rules.merge_seen(["d"], ["b", "d"]) == ["d", "b"])
 	var r := Rules.cell_rects(8)
 	assert(r.size() == 8)
 	for c in r:

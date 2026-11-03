@@ -5,6 +5,7 @@ extends RefCounted
 ##   Rules.bits(["a", "b", "c"], {"b": true})            # "010"
 ##   Rules.count_set("010")                               # 1
 ##   Rules.overflow_unlocked(["a","b","c","d","e"], all)  # true when every bit set and n >= 5
+##   Rules.newly_cleared(slugs, cleared, seen)            # slugs cleared but not yet in the seen list: play the bit-set ceremony
 ##   Rules.cell_rects(8)                                  # 8 Rect2, 120x150, 16 px gap, centred on x 640
 
 const CELL := Vector2(120, 150)
@@ -38,6 +39,27 @@ static func count_set(bit_string: String) -> int:
 static func overflow_unlocked(slugs: Array, cleared: Dictionary, min_games: int = MIN_GAMES) -> bool:
 	var b := bits(slugs, cleared)
 	return b.length() >= min_games and count_set(b) == b.length()
+
+
+## Slugs (in slug order) that are cleared but not yet in `seen`: the bit-set ceremony plays for these once.
+static func newly_cleared(slugs: Array, cleared: Dictionary, seen: Array) -> Array[String]:
+	var out: Array[String] = []
+	for slug in slugs:
+		if bool(cleared.get(slug, false)) and not seen.has(slug):
+			out.append(String(slug))
+	return out
+
+
+## `seen` plus `added`, without duplicates (order kept).
+static func merge_seen(seen: Array, added: Array) -> Array[String]:
+	var out: Array[String] = []
+	for s in seen:
+		if not out.has(String(s)):
+			out.append(String(s))
+	for s in added:
+		if not out.has(String(s)):
+			out.append(String(s))
+	return out
 
 
 static func span(n: int) -> float:
