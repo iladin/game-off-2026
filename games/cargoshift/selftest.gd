@@ -122,6 +122,26 @@ func _init() -> void:
 		f.append("pointer drag")
 	if not R.is_grab(Vector2(700, 495), Vector2(640, 495)) or R.is_grab(Vector2(800, 495), Vector2(640, 495)):
 		f.append("is_grab")
+	# waterline and submerged hull
+	for tl in [-0.4, 0.0, 0.4]:
+		var lo := 1e9
+		var hi := -1e9
+		for part in R.waterline_hull(tl):
+			for p: Vector2 in part:
+				lo = minf(lo, p.y)
+				hi = maxf(hi, p.y)
+		if lo < R.SEA_Y - 1.5 - 1e-3 or hi > R.SEA_Y + 1.5 + 1e-3 or hi < lo:
+			f.append("waterline at tilt %f: %f..%f" % [tl, lo, hi])
+		var slo := 1e9
+		for part in R.submerged_hull(tl):
+			for p: Vector2 in part:
+				slo = minf(slo, p.y)
+		if slo < R.SEA_Y - 1e-3:
+			f.append("submerged above sea at tilt %f" % tl)
+	for xx in range(300, 981, 20):
+		for tt in [0.0, 1.7, 3.3, 6.1]:
+			if absf(R.sea_offset(float(xx), tt)) > 4.0:
+				f.append("sea surface under hull off SEA_Y at x %d" % xx)
 	for m in f:
 		printerr("SELFTEST FAIL: " + m)
 	if f.is_empty():

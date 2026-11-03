@@ -61,6 +61,13 @@ const HALF_X := 640.0
 const DRAG_GRAB := 96.0
 const DRAG_DEAD := 12.0
 const LIVES := 3
+const SEA_Y := 470.0
+const SEA_CALM_HALF := 380.0
+const SEA_CALM_FADE := 160.0
+const SEA_CALM_AMP := 0.18
+const WATERLINE_HALF := 1.5
+const HULL := [Vector2(-340, -20), Vector2(340, -20), Vector2(260, 110), Vector2(-260, 110)]
+const HULL_PIVOT := Vector2(640, 440)
 
 
 class Ship extends RefCounted:
@@ -323,3 +330,32 @@ static func sim_round(seed_v: int, difficulty: int, idle: bool = false, tilt6: A
 				"max_tilt": max_tilt, "score": final_score(score, lives), "waves": wave_count, "shifts": shifts}
 	return {"won": false, "time": t, "capsizes": capsizes, "first_capsize": first_capsize,
 		"max_tilt": max_tilt, "score": score, "waves": wave_count, "shifts": shifts}
+
+
+## Sea surface height offset from SEA_Y at world x. Swell is full size at the edges and
+## nearly flat under the hull (|x - 640| < SEA_CALM_HALF), so the level waterline sits on it.
+static func sea_offset(x: float, t: float) -> float:
+	var k := smoothstep(SEA_CALM_HALF, SEA_CALM_HALF + SEA_CALM_FADE, absf(x - HULL_PIVOT.x))
+	var amp := lerpf(SEA_CALM_AMP, 1.0, k)
+	return amp * (10.0 * sin(x / 90.0 + t * 1.3) + 6.0 * sin(x / 37.0 - t * 2.1))
+
+
+static func hull_world(tilt: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p: Vector2 in HULL:
+		out.append(HULL_PIVOT + p.rotated(tilt))
+	return out
+
+
+## Hull polygons (world space) with y between y0 and y1; level regardless of tilt.
+static func hull_slice(tilt: float, y0: float, y1: float) -> Array:
+	var band := PackedVector2Array([Vector2(-2000, y0), Vector2(3000, y0), Vector2(3000, y1), Vector2(-2000, y1)])
+	return Geometry2D.intersect_polygons(hull_world(tilt), band)
+
+
+static func submerged_hull(tilt: float) -> Array:
+	return hull_slice(tilt, SEA_Y, 2000.0)
+
+
+static func waterline_hull(tilt: float) -> Array:
+	return hull_slice(tilt, SEA_Y - WATERLINE_HALF, SEA_Y + WATERLINE_HALF)

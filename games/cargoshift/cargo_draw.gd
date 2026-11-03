@@ -12,7 +12,7 @@ const ACCENT := Color("2DD4BF")
 const GOOD := Color("FFD34D")
 const BAD := Color("FF3B5C")
 const PIVOT := Vector2(640, 440)
-const SEA_Y := 470.0
+const SEA_Y := R.SEA_Y
 const DECK_RANGE := 264.0
 const BALLAST_RANGE := 240.0
 const BALLAST_Y := 55.0
@@ -40,7 +40,7 @@ static func _sea_pts(t: float, dy: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	for i in 33:
 		var x := i * 40.0
-		pts.append(Vector2(x, SEA_Y + dy + 10.0 * sin(x / 90.0 + t * 1.3) + 6.0 * sin(x / 37.0 - t * 2.1)))
+		pts.append(Vector2(x, SEA_Y + dy + R.sea_offset(x, t)))
 	return pts
 
 
@@ -70,8 +70,9 @@ static func draw_ship(ci: CanvasItem, s: R.Ship, t: float, hint_side: int, fx: D
 	ci.draw_colored_polygon(hull, PANEL)
 	var outline := PackedVector2Array(hull)
 	outline.append(hull[0])
+	_draw_submerged(ci, s.tilt)
 	ci.draw_polyline(outline, INK, 4.0)
-	_draw_waterline(ci, hull, s.tilt)
+	_draw_waterline(ci, s.tilt)
 	ci.draw_set_transform(PIVOT, s.tilt)
 	var rt: float = fx.get("ridden_t", 0.0)
 	if rt > 0.0:
@@ -86,16 +87,20 @@ static func draw_ship(ci: CanvasItem, s: R.Ship, t: float, hint_side: int, fx: D
 	ci.draw_set_transform(Vector2.ZERO, 0.0)
 
 
-## The sea line on the hull: the world-level band at SEA_Y clipped to the rotated hull,
-## so it stays level while the hull tilts.
-static func _draw_waterline(ci: CanvasItem, hull: PackedVector2Array, tilt: float) -> void:
-	var world := PackedVector2Array()
-	for p in hull:
-		world.append(PIVOT + p.rotated(tilt))
-	var band := PackedVector2Array([Vector2(0, SEA_Y - 1.5), Vector2(1280, SEA_Y - 1.5), Vector2(1280, SEA_Y + 1.5), Vector2(0, SEA_Y + 1.5)])
+## Submerged part of the hull: a faint teal tint, clipped to the level sea.
+static func _draw_submerged(ci: CanvasItem, tilt: float) -> void:
 	ci.draw_set_transform(Vector2.ZERO, 0.0)
-	for part in Geometry2D.intersect_polygons(world, band):
+	for part in R.submerged_hull(tilt):
+		ci.draw_colored_polygon(part, Color(ACCENT, 0.22))
+	ci.draw_set_transform(PIVOT, tilt)
+
+
+## The sea line on the hull: a level band at SEA_Y clipped to the rotated hull.
+static func _draw_waterline(ci: CanvasItem, tilt: float) -> void:
+	ci.draw_set_transform(Vector2.ZERO, 0.0)
+	for part in R.waterline_hull(tilt):
 		ci.draw_colored_polygon(part, ACCENT)
+	ci.draw_set_transform(PIVOT, tilt)
 
 
 static func _draw_ballast(ci: CanvasItem, s: R.Ship, t: float, hint_side: int, fx: Dictionary) -> void:
