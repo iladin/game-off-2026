@@ -38,7 +38,7 @@ The decision: which enemy to match next and whether to commit (shift and line up
 ## Round: fail / win, score
 - **Win (sets the RED bit):** survive to `t >= ROUND_TIME = 50.0` s. `finish(Rules.final_score(score, lives), true)` that frame. Every surviving round is 50.6 s with the intro, at any difficulty.
 - **Lives:** 3, ember squares at top centre.
-- **Hard fail = crash:** an enemy's circle overlaps the ship's (`distance < enemy.radius + SHIP_R 22`) while `invuln <= 0`. The enemy is destroyed (no points), `streak = 0`, `invuln = INVULN 1.0` s (ship blinks at 10 Hz). **Grace:** while `r < GRACE_END = 10` a crash costs no life (soft-fail feedback, popup `DODGE` in DIM).
+- **Hard fail = crash:** an enemy's circle overlaps the ship's (`distance < enemy.radius + SHIP_R 22`) while `invuln <= 0`. The enemy is destroyed (no points), `streak = 0`, `invuln = INVULN 1.0` s (ship blinks at 10 Hz). **Grace:** while `r < GRACE_END = 10` a crash costs no life (soft-fail feedback, popup `DODGE` in INK, since DIM is too dark on the popup outline).
 - **Lose:** lives reach 0: `finish(score, false)` in the same frame as the hard-fail effects; return; `finish()` exactly once.
 - **Score:**
   - **Kill** (enemy hp reaches 0): `Rules.kill_points(streak, heavy) = (KILL_PTS 10 + STREAK_PTS 2 * min(streak, STREAK_CAP 10)) * (HEAVY_MULT 3 if heavy else 1)`, then `streak += 1`.
@@ -133,10 +133,10 @@ No sound per shot (6 shots a second would eat the 12 voices); the shots are seen
 | # | Event (trigger in game.gd) | Effect | State set there, read in drawing |
 |---|---|---|---|
 | 1 | `EV_SHIFT` | ship squashes 1.25x wide then back over 0.12 s; a ring (circle outline 6 px, band colour) expands from the ship from r 24 to 90 and fades over 0.25 s; star streaks and flame follow `k` | `shift_fx_t = 0.25` |
-| 2 | `EV_KILL` | `Juice.burst(self, pos, BAND_COL[band], 14)`; popup `+N` GOOD 36 px, full alpha until 0.55 s; heavy kill: `Juice.flash(Color(INK, 0.15), 0.1)`, `Juice.shake(10)`, hitstop 0.05 | `kill_rings` (array of `{pos, band, t = 0.2}`: an expanding outline of the enemy's shape) |
+| 2 | `EV_KILL` | `Juice.burst(self, pos, BAND_COL[band], 14)`; popup `+N` GOOD 36 px, full alpha until 0.55 s; popups within 0.3 s and 40 px of an earlier one drop 46 px each (`Rules.stagger_pos`); heavy kill: `Juice.flash(Color(INK, 0.15), 0.1)`, `Juice.shake(10)`, hitstop 0.05 | `kill_rings` (array of `{pos, band, t = 0.2}`: an expanding outline of the enemy's shape) |
 | 3 | `EV_DAMAGE` | the heavy flashes INK fill for 0.06 s and squashes 1.25 to 1.0 over 0.12 s | `enemy.flash_t` kept in a game-side Dictionary keyed by the enemy |
 | 4 | `EV_BLOCK` | DIM spark at the block point | `sparks` (array of `{pos, t = 0.1}`) |
-| 5 | Crash in grace | ship tinted BAD 0.2 s; `Juice.shake(4)`; popup `DODGE` DIM 32 px at the ship | `tint_t = 0.2` |
+| 5 | Crash in grace | ship tinted BAD 0.2 s; `Juice.shake(4)`; popup `DODGE` INK 36 px at the ship | `tint_t = 0.2` |
 | 6 | Crash (life lost) | `Juice.flash(Color(BAD, 0.35), 0.2)`, `Juice.shake(14)`, `Juice.hitstop(0.06)`, `Juice.burst(self, crash_pos, BAD)`; lost life square BAD 0.4 s; loop silent 0.5 s | `life_flash_t = 0.4`, `loop_restart_t = 0.5` |
 | 7 | Pad pressed | pad fill flash 0.12 s (DIM if at an end) | `pad_t[0..1] = 0.12`, `pad_dead[0..1]` |
 | 8 | Banner change | fades in/out as above | `banner_text`, `banner_t` |

@@ -53,6 +53,7 @@ var tick_t: float = 0.0
 var thud_t: float = 0.0
 var band_col_now: Color = D.BAND_COL[1]
 var form_band: int = -1
+var popup_log: Array = []  # recent popup base positions, for Rules.stagger_pos
 
 
 func begin() -> void:
@@ -96,12 +97,17 @@ func begin() -> void:
 	thud_t = 0.0
 	band_col_now = D.BAND_COL[run.band]
 	form_band = -1
+	popup_log.clear()
 	Synth.stop_loop()
 	Synth.sfx("blip")
 
 
 func _popup_pos(p: Vector2) -> Vector2:
-	return R.popup_pos(p)
+	var base := R.popup_pos(p)
+	popup_log = popup_log.filter(func(e): return t - float(e.t) <= R.STAGGER_TIME)
+	var out := R.stagger_pos(base, t, popup_log)
+	popup_log.append({"pos": base, "t": t})
+	return out
 
 
 # Same shape as Juice.popup (shared/ is read-only for this game) but holds full alpha longer
@@ -346,7 +352,7 @@ func _on_events(ev: int, streak_before: int) -> bool:
 			tint_t = 0.2
 			Juice.shake(4.0)
 			Synth.sfx("miss", rng.randf_range(0.92, 1.08))
-			_popup(_popup_pos(Vector2(R.SHIP_X, run.ship_y - 40.0)), "DODGE", D.DIM)
+			_popup(_popup_pos(Vector2(R.SHIP_X, run.ship_y - 40.0)), "DODGE", D.INK)  # INK, not DIM: DIM is too dark on the black outline
 		else:
 			lives -= 1
 			life_flash_t = 0.4

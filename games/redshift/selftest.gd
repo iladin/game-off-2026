@@ -116,6 +116,13 @@ func _init() -> void:
 		_t(pp.y - R.POPUP_SIZE - R.POPUP_RISE >= R.HUD_BOTTOM, "popup top clear of HUD y=%s" % py)
 		_t(pp.x == R.POPUP_MIN_X and R.popup_pos(Vector2(2000, py)).x == R.POPUP_MAX_X, "popup x clamp")
 	_t(R.popup_pos(Vector2(500, 400)) == Vector2(500, 400), "popup unclamped passthrough")
+	var b := Vector2(500, 300)
+	_t(R.stagger_pos(b, 1.0, []) == b, "stagger: alone")
+	_t(R.stagger_pos(b, 1.2, [{"pos": b + Vector2(30, 0), "t": 1.0}]).y == b.y + R.STAGGER_DY, "stagger: close kill drops")
+	_t(R.stagger_pos(b, 1.2, [{"pos": b, "t": 1.0}, {"pos": b + Vector2(0, 20), "t": 1.1}]).y == b.y + 2.0 * R.STAGGER_DY, "stagger: third stacks")
+	_t(R.stagger_pos(b, 1.5, [{"pos": b, "t": 1.0}]) == b, "stagger: too late")
+	_t(R.stagger_pos(b, 1.2, [{"pos": b + Vector2(90, 0), "t": 1.0}]) == b, "stagger: too far")
+	_t(R.STAGGER_DY >= R.POPUP_SIZE, "stagger clears label height")
 	# popup constants must be the ones game.gd draws with and the ones Juice.popup rises by
 	var src := FileAccess.get_file_as_string("res://games/redshift/game.gd")
 	var jsrc := FileAccess.get_file_as_string("res://shared/juice.gd")

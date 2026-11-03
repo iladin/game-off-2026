@@ -21,6 +21,9 @@ const POPUP_RISE := 70.0
 const POPUP_LIFE := 0.9
 const POPUP_FADE_DELAY := 0.55  # full alpha until here, then fade over the rest
 const HUD_BOTTOM := 64.0
+const STAGGER_TIME := 0.3  # popups this close in time AND space would overlap: later ones drop down
+const STAGGER_DIST := 40.0
+const STAGGER_DY := 46.0  # label line height at 36 px plus outline, so stacked labels do not touch
 const POPUP_MIN_Y := HUD_BOTTOM + POPUP_RISE + POPUP_SIZE + 2.0  # 168: final label top = 66
 const SHIP_Y0 := 340.0
 const SHIP_Y_MIN := 110.0
@@ -265,3 +268,14 @@ static func step(s: Run, dt: float, r: float, move: float, rng: RandomNumberGene
 			alive.append(e)
 	s.enemies = alive
 	return ev
+
+
+## Offset for a popup whose (clamped) base position is p. recent = [{pos, t}] of earlier popups'
+## base positions and game times. Each earlier one within STAGGER_TIME and STAGGER_DIST pushes
+## this one STAGGER_DY lower, so close kills stack readable instead of overlapping.
+static func stagger_pos(p: Vector2, now: float, recent: Array) -> Vector2:
+	var n := 0
+	for e in recent:
+		if now - float(e.t) <= STAGGER_TIME and p.distance_to(e.pos) <= STAGGER_DIST:
+			n += 1
+	return p + Vector2(0.0, STAGGER_DY * n)
