@@ -142,3 +142,22 @@ static func shape_for_tap_x(x: float) -> int:
 
 static func final_score(score: int, lives: int) -> int:
 	return score + LIFE_BONUS * lives
+
+
+## Crash warning: past this progress a mismatched hole is outlined in steady BAD.
+const WARN_P := 0.75
+const WARN_W_BAD := 6.0
+const WARN_W_OK := 6.0
+const OUTLINE_MIN_W := 4.0
+
+
+## True when the wall is close and the player is the wrong shape. Time-free on purpose: no pulse.
+static func warn_bad(p: float, player: int, hole: int) -> bool:
+	return p > WARN_P and not passes(player, hole)
+
+
+## Hole outline width: always at least OUTLINE_MIN_W; 6 px in the warning zone.
+static func outline_width(p: float, s: float, player: int, hole: int) -> float:
+	if p > WARN_P:
+		return WARN_W_BAD if not passes(player, hole) else WARN_W_OK
+	return maxf(OUTLINE_MIN_W, 5.0 * s)

@@ -45,6 +45,12 @@ func _init() -> void:
 		fails.append("tap columns")
 	if Rules.final_score(100, 2) != 200:
 		fails.append("final score")
+	for hole in 3:
+		for pl in 3:
+			if Rules.warn_bad(0.76, pl, hole) != (pl != hole) or Rules.warn_bad(0.7, pl, hole):
+				fails.append("warn_bad only past 0.75 on mismatch")
+			if Rules.outline_width(0.9, 0.5, pl, hole) < 6.0 or Rules.outline_width(0.1, 0.06, pl, hole) < 4.0:
+				fails.append("outline widths")
 	for f in fails:
 		printerr("SELFTEST FAIL: " + f)
 	if fails.is_empty():

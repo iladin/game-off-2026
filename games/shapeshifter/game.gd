@@ -24,7 +24,7 @@ const GHOST_TIME := 0.15
 const FAIL_TINT_TIME := 0.2
 const PASS_OUT_TIME := 0.12
 const FADE_IN_P := 0.15
-const WARN_P := 0.75
+const WARN_P := Rules.WARN_P
 const HINT_WALLS := 3
 const LABEL_TIME := 10.0
 const BANNER_TIME := 1.2
@@ -84,6 +84,10 @@ var life_flash_t: float = 0.0
 var bot_walls: int = 0
 var rush_loop: bool = false
 var font: Font = ThemeDB.fallback_font
+## Draw-state of the last wall outline (for QA evidence).
+var last_outline_bad: bool = false
+var last_outline_w: float = 0.0
+var qa_mismatch: bool = false
 
 
 func begin() -> void:
@@ -112,6 +116,7 @@ func begin() -> void:
 	life_flash_t = 0.0
 	bot_walls = 0
 	rush_loop = last_phase >= 4
+	qa_mismatch = "--qa-mismatch" in OS.get_cmdline_user_args()
 	Synth.stop_loop()
 	Synth.sfx("blip")
 
@@ -295,6 +300,8 @@ func _select_shape(s: int) -> void:
 
 
 func _bot() -> void:
+	if qa_mismatch:
+		return  # QA: never shift, so the first wall is a forced mismatch
 	var target: Wall = null
 	for w in walls:
 		if w.out_t < 0.0 and not w.judged and (target == null or w.p() > target.p()):
@@ -334,7 +341,12 @@ func _draw() -> void:
 	var glow := -1
 	if nearest != null and nearest.idx < HINT_WALLS and nearest.shape != player_shape:
 		glow = nearest.shape
+	if qa_mismatch and nearest != null and nearest.p() > WARN_P:
+		print("QA_WARN p=%.2f bad=%s w=%.1f" % [nearest.p(), last_outline_bad, last_outline_w])
 	var ga := 0.25 + 0.2 * sin(TAU * 3.0 * elapsed)
+	if nearest != null and Rules.warn_bad(nearest.p(), player_shape, nearest.shape):
+		glow = nearest.shape
+		ga = 0.5
 	TD.draw_buttons(self, font, player_shape, glow, ga, elapsed < LABEL_TIME)
 	var ba := clampf(banner_t / 0.3, 0.0, 1.0)
 	TD.draw_hud(self, font, score, Rules.multiplier(streak), lives, LIVES, life_flash_t, r / Rules.ROUND_TIME, banner_text, ba)
@@ -344,15 +356,12 @@ func _draw_wall(w: Wall, s_mul: float, a_mul: float, outline_only: bool) -> void
 	var p := minf(w.p(), 1.0)
 	var s := Rules.wall_scale(p) * s_mul
 	var alpha := clampf(p / FADE_IN_P, 0.0, 1.0) * a_mul
-	var col := Color(TD.ACCENT, (0.5 + 0.5 * p) * a_mul)
-	var lw := maxf(3.0, 5.0 * s)
+	var col := Color(TD.INK, (0.5 + 0.5 * p) * a_mul)
+	var lw := Rules.outline_width(p, s, player_shape, w.shape)
 	if w.out_t < 0.0 and p > WARN_P:
-		if Rules.passes(player_shape, w.shape):
-			col = TD.ACCENT
-			lw = 6.0
-		else:
-			col = Color(TD.BAD, 0.5 + 0.5 * absf(sin(TAU * 2.0 * elapsed)))
-			lw = 4.0
+		col = TD.BAD if Rules.warn_bad(p, player_shape, w.shape) else TD.INK
+	last_outline_bad = col == TD.BAD
+	last_outline_w = lw
 	var rad := TD.radii(w.from_shape, w.shape, w.morph_k, s, true)
 	if outline_only:
 		# Drawn over the player, so accent-on-accent would vanish: use INK (or BAD) here.
