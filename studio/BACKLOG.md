@@ -2,29 +2,51 @@
 
 Format: `- [T-####] P0|P1|P2 | role | game-or-area | title` with an indented `accept:` line (one or more testable criteria) and optional `source:` (review, INBOX, #issue).
 P0 = broken or blocks the jam · P1 = clearly hurts a jam score · P2 = polish. The Producer keeps Ready sorted P0 → P2, then oldest first.
-Next id: T-0032
+Next id: T-0040
 
 ## Ready
+- [T-0030] P1 | platform-engineer | shared (gauntlet) | Gauntlet interstitial card; slot timer starts after each game's intro
+  accept: before each gauntlet game a ~0.6 s card shows the next game's sense word at >= 72 px in its accent with its slot digit flipping 0->1 and a shift sound; the 8 s slot counts from the game's first playable frame (TIME shows 8.0 at the first input frame); on a run clear the result card shows the 8-cell register with a carry rippling left to right, then OVERFLOW in GOOD; shots show the card and the clear register; `./scripts/check.sh hub` PASS.
+  source: R0011 QA T-0021 (finding 4); R0012 Jam Critic fix 4 (raised to P1)
+- [T-0031] P1 | release-manager | uppercase (web) | Chromium reports Left/Right Shift location
+  accept: in the first web build, a headless Chromium check dispatching ShiftLeft and ShiftRight keydowns shows Upper Case registering the left and right Shift (location 1 and 2); if not, the on-screen key labels show the fallback keys (F/J) that work on the web.
+  source: R0011 QA T-0009 (finding 3); R0012 Jam Critic fix 3 (raised to P1; do it with the first web export)
+- [T-0033] P1 | gameplay-engineer | redshift | Two-finger touch: steer and BRAKE/BOOST at once
+  accept: steering and the BRAKE/BOOST pads read InputEventScreenTouch/ScreenDrag by index (not emulated mouse), so a pad tap doesn't release the steering pointer; a scripted two-pointer sequence (touch 0 dragging, touch 1 tapping BRAKE) changes band while the ship keeps following touch 0; keyboard unchanged; `./scripts/check.sh redshift` PASS.
+  source: R0012 QA sweep finding 1
+- [T-0034] P1 | gameplay-engineer | phaseshift | Fill the upper screen with two parallax block rows
+  accept: two parallax rows of block silhouettes (0.3x and 0.6x scroll) at y 200-520, one per world; the current world's row is a PANEL fill tinted with that world's colour, the other a 2 px outline; they swap on phase with the floor's 0.15 s tween; play-300 shows blocks covering >= 30% of the y 200-520 band and a post-phase shot shows the rows swapped; check.sh phaseshift PASS.
+  source: R0012 Jam Critic fix 2 (Graphics 6.0)
+- [T-0035] P1 | gameplay-engineer | nightwatch | Bring the danger into view (main view bar + thumbnail cue)
+  accept: when an unwatched feed has d > 0.6 a 6 px BAD bar pulses at 3 Hz on the main view's right edge level with that feed's thumbnail; that feed's thumbnail gets a pulsing BAD outline (visible in the first 10 s for the nearest creeper); the watched feed's creeper is >= 40 px tall from d >= 0.3; shots show the bar and outline; check.sh nightwatch PASS.
+  source: R0012 Jam Critic fix 5, QA sweep finding 4
+- [T-0036] P1 | gameplay-engineer | cargoshift | Solid hull and separated crates
+  accept: the hull is filled with PANEL under its 4 px INK outline with a 2 px teal waterline (no sea or grid shows through in any shot); in a storm shot (frames 1900-2000) no two crate rects intersect (gap >= 4 px); check.sh cargoshift PASS.
+  source: R0012 Jam Critic fix 6
 - [T-0028] P2 | creative-director | hub+VISION | OVERFLOW teaser cell: bless it or hide it
   accept: VISION.md section 2/7/8 and hub/hub.gd agree: either VISION says a dim locked OVERFLOW cell shows from the start (and section 8's cell-span numbers match 9 cells), or a Platform task is filed to hide the cell until `overflow_unlocked()`.
   source: R0011 QA T-0007 (finding 3), T-0021 (finding 3)
 - [T-0025] P2 | platform-engineer | shared | Late-round QA flags for single-game launches
   accept: a user arg (e.g. `--difficulty=N` and/or `--rstart=<seconds>`) makes a single-game launch start late in its ramp; documented in shared/arcade.gd; `./scripts/shots.sh geargrind` with it reaches fifth gear (shot shows gear 5); hub selftest and `./scripts/check.sh all` PASS.
   source: R0011 QA T-0007 (finding 1)
-- [T-0030] P2 | platform-engineer | shared (gauntlet) | Gauntlet timer starts after each game's intro
-  accept: code shows the 8 s gauntlet slot counts from the game's first playable frame (or every game's intro is <= 0.6 s and the slot is extended by it); a gauntlet log line or shot shows the full slot; `./scripts/check.sh hub` PASS.
-  source: R0011 QA T-0021 (finding 4)
 - [T-0026] P2 | qa-lead | geargrind | See fifth gear, redline and BLOWN (after T-0025)
   accept: shots show gear 5 with a moved band, the needle in the red with the pulsing red zone and BAD tint, and the BLOWN banner with its red flash (needs T-0025 and a bot option that shifts late); findings filed as tasks.
   source: R0011 QA T-0007 (findings 1, 2)
-- [T-0031] P2 | release-manager | uppercase (web) | Chromium reports Left/Right Shift location
-  accept: in the first web build, a headless Chromium check dispatching ShiftLeft and ShiftRight keydowns shows Upper Case registering the left and right Shift (location 1 and 2); if not, a P1 is filed to fall back on the key code.
-  source: R0011 QA T-0009 (finding 3)
+- [T-0037] P2 | gameplay-engineer | cargoshift | Make the list visible in the first 10 s
+  accept: by t = 6 s of a fresh no-input round the ship tilts >= 8 degrees, a crate has visibly slid and the needle moves into the amber band; the first 10 s still can't lose a life; check.sh cargoshift PASS.
+  source: R0012 QA sweep finding 3
+- [T-0038] P2 | gameplay-engineer | redshift | +N popups clear of the SOUND corner
+  accept: score popups spawn inside x 170-1090 and y > 70; a shot with a popup near the top right shows no overlap with SOUND or the progress bar end; check.sh redshift PASS.
+  source: R0012 QA sweep finding 2
+- [T-0039] P2 | gameplay-engineer | nightwatch | Flash per the art bible
+  accept: a flash is a white tint at alpha <= 0.15 for <= 0.1 s (code), with no persistent flat grey screen in any shot; check.sh nightwatch PASS.
+  source: R0012 QA sweep finding 5
 
 ## In progress
 
 ## Done
 <!-- - [T-####] ... · R#### · <sha> -->
+- [T-0032] P1 | gameplay-engineer | redshift | Spawn in formations of 3 · R0012 · 3dc4a0b
 - [T-0029] P2 | gameplay-engineer | uppercase | Ramp banners on a panel above fresh tiles · R0011 · f1c487b
 - [T-0027] P2 | platform-engineer | shared | Gauntlet HUD in the left gutter, RUN LIVES label · R0011 · e8d83dc
 - [T-0021] P2 | qa-lead | cargoshift+hub | Unseen states sweep: STORM, difficulty 1, OVERFLOW hub, lost-life square (all PASS; filed T-0027, T-0028, T-0030) · R0011 · sweep
