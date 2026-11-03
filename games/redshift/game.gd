@@ -3,6 +3,7 @@ extends MicroGame
 
 const R := preload("res://games/redshift/rules.gd")
 const D := preload("res://games/redshift/redshift_draw.gd")
+const Bot := preload("res://games/redshift/rules_bot.gd")
 
 const INTRO := 0.6
 const BANNER_TIME := 1.2
@@ -10,6 +11,7 @@ const LOOP_VOL := 0.10
 const LOOP_BPM := 150.0
 const LOOP_RESTART := 0.5
 const STAR_COUNT := 36
+const QA_SEED := 7
 
 var rng := RandomNumberGenerator.new()
 var run: R.Run = R.Run.new()
@@ -41,11 +43,16 @@ var pad_t: Array[float] = [0.0, 0.0]
 var pad_dead: Array[bool] = [false, false]
 var tick_t: float = 0.0
 var thud_t: float = 0.0
-var BAND_COL_NOW: Color = D.BAND_COL[1]
+var band_col_now: Color = D.BAND_COL[1]
 
 
 func begin() -> void:
 	rng.randomize()
+	if autoplay:
+		rng.seed = QA_SEED  # autoplay is repeatable, so shots show the same heavy every time
+	for a in OS.get_cmdline_user_args():  # QA flag: --seed=N overrides
+		if a.begins_with("--seed="):
+			rng.seed = int(a.substr(7))
 	run = R.Run.new()
 	for l in 3:
 		var arr := PackedVector2Array()
@@ -77,7 +84,7 @@ func begin() -> void:
 	pad_dead = [false, false]
 	tick_t = 0.0
 	thud_t = 0.0
-	BAND_COL_NOW = D.BAND_COL[run.band]
+	band_col_now = D.BAND_COL[run.band]
 	Synth.stop_loop()
 	Synth.sfx("blip")
 
@@ -103,7 +110,7 @@ func _process(dt: float) -> void:
 		think -= dt
 		if think <= 0.0:
 			think = R.BOT_THINK
-			var d := R.bot_think(run)
+			var d := Bot.bot_think(run)
 			if d.shift != 0:
 				_shift(d.shift)
 			bot_aim_y = d.aim_y
@@ -213,7 +220,7 @@ func _shift(dir: int) -> void:
 	pad_dead[pi] = false
 	shift_fx_t = 0.25
 	fx_col = D.BAND_COL[run.band]
-	BAND_COL_NOW = fx_col
+	band_col_now = fx_col
 	Synth.sfx("shift", R.shift_pitch(run.streak))
 	loop_restart_t = 0.0
 	_apply_loop()

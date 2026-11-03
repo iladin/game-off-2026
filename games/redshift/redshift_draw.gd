@@ -2,6 +2,7 @@ extends RefCounted
 ## Red Shift drawing helpers (static). `g` is the game node (reads its state).
 
 const R := preload("res://games/redshift/rules.gd")
+const Bot := preload("res://games/redshift/rules_bot.gd")
 const BG := Color("0B0E14")
 const PANEL := Color("151A24")
 const TRACE := Color("1E2738")
@@ -15,6 +16,8 @@ const STAR_SPEED := [40.0, 90.0, 160.0]
 const STAR_ALPHA := [0.25, 0.4, 0.6]
 const STREAK_LEN := 14.0
 const GRID_SPEED := 120.0
+const ENEMY_DRAW := 24.0
+const HEAVY_SCALE := 1.5
 
 
 static func a(c: Color, al: float) -> Color:
@@ -56,7 +59,7 @@ static func draw_space(ci: CanvasItem, g) -> void:
 		ci.draw_line(Vector2(0, y), Vector2(1280, y), TRACE, 1.0)
 	var k: float = g.run.k
 	for l in 3:
-		var col: Color = INK if l < 2 else g.BAND_COL_NOW
+		var col: Color = INK if l < 2 else g.band_col_now
 		var al: float = STAR_ALPHA[l] if l < 2 else 0.5
 		var ln := 2.0 + STREAK_LEN * maxf(0.0, k - 0.75) * (l + 1)
 		for p in g.stars[l]:
@@ -89,7 +92,7 @@ static func draw_enemies(ci: CanvasItem, g) -> void:
 	var hints: bool = R.hints_on(g.r)
 	for e in s.enemies:
 		var col: Color = BAND_COL[e.band]
-		var sz: float = e.radius * 0.92
+		var sz: float = ENEMY_DRAW * (HEAVY_SCALE if e.heavy else 1.0)
 		var match_b: bool = e.band == s.band
 		var fl: float = g.hit_flash.get(e, 0.0)
 		var sq: float = 1.0 + 0.25 * clampf(fl / 0.06, 0.0, 1.0)
@@ -124,7 +127,7 @@ static func draw_shots(ci: CanvasItem, g) -> void:
 static func draw_pads(ci: CanvasItem, g) -> void:
 	var s: R.Run = g.run
 	ci.draw_line(Vector2(0, 594), Vector2(1280, 594), TRACE, 2.0)
-	var tgt := R.target(s)
+	var tgt := Bot.target(s)
 	var hint := 0
 	if tgt != null and R.hints_on(g.r):
 		hint = signi(tgt.band - s.band)

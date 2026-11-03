@@ -2,6 +2,7 @@ extends SceneTree
 ## Run: godot --headless --path . --script res://games/redshift/selftest.gd
 
 const R := preload("res://games/redshift/rules.gd")
+const Bot := preload("res://games/redshift/rules_bot.gd")
 var fails: Array[String] = []
 
 
@@ -97,9 +98,9 @@ func _init() -> void:
 	# sims
 	for sd in range(1, 11):
 		for d in 2:
-			var o := R.sim_round(sd, d)
+			var o := Bot.sim_round(sd, d)
 			_t(o.won and o.crashes <= 2 and o.time > 49.9 and o.time < 50.1 and o.kills >= 30 and o.shifts >= 10, "sim seed %d d%d %s" % [sd, d, str(o)])
-		var idle := R.sim_round(sd, 0, "idle")
+		var idle := Bot.sim_round(sd, 0, "idle")
 		_t(not idle.won and idle.first_crash > 3.0 and idle.time < 50.0, "idle seed %d %s" % [sd, str(idle)])
 	# scoring, sound, input
 	_t(R.kill_points(0, false) == 10 and R.kill_points(99, false) == 30 and R.kill_points(0, true) == 30, "kill_points")
