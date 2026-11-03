@@ -4,6 +4,7 @@ extends Node2D
 ## cell and an info panel with a drawn PLAY button. Logic lives in hub_rules.gd.
 ## Debug: `-- --hubdemo=8` shows placeholder entries (no Save, launching only plays select).
 ## Bit-set ceremony: a game cleared but not in Save setting "seen_cleared" flips 0 to 1 once.
+## Debug: `-- --hubempty` shows the zero-games empty state.
 ## Debug: `-- --hubdemo=8 --hubceremony=2` plays the ceremony on demo cell 3 (index 2) at 0.5 s.
 
 const Rules := preload("res://hub/hub_rules.gd")
@@ -16,6 +17,8 @@ const INK := Color("e8ecf4")
 const GOOD := Color("ffd34d")
 const NEUTRAL := Color("3ddcff")
 const GRID := 40
+const ONE_INK := Vector2(-5.0, -1.0) ## measured offset of the 64 px "1" ink centre from its draw centre
+const EMPTY_OUTLINE := Color(DIM, 0.7) ## empty-state cell outlines: DIM so they read against the TRACE grid
 const BUS_Y := 400.0
 const DOT_SPEED := 120.0
 const DOT_SPACING := 160.0
@@ -53,6 +56,8 @@ func _ready() -> void:
 					_flips[ci] = FLIP_DELAY
 	else:
 		for g in Arcade.games:
+			if "--hubempty" in OS.get_cmdline_user_args():
+				break
 			var e: Dictionary = g.duplicate()
 			e["cleared"] = Save.cleared(e["slug"])
 			e["best"] = Save.best(e["slug"])
@@ -191,7 +196,8 @@ func _draw() -> void:
 	_text("%d OF %d BITS SET" % [k, n], Vector2(640, 170), 28, DIM)
 	if n == 0:
 		for r in Rules.cell_rects(8):
-			draw_rect(r, TRACE, false, 2.0)
+			draw_rect(r, PANEL)
+			draw_rect(r, EMPTY_OUTLINE, false, 2.0)
 		_bus()
 		_text("THE FACTORY IS BUILDING THE FIRST BIT", Vector2(640, 490), 32, DIM)
 		_footer()
@@ -220,12 +226,12 @@ func _cell(i: int) -> void:
 		if p < 0.5:
 			_digit("0", c, 64, DIM)
 		else:
-			_digit("1", c, 64 * 1.3, Color(accent, 0.25))
+			_glow("1", c, 1.3, Color(accent, 0.25), Transform2D(0.0, Vector2(1, sy), 0.0, Vector2(0, c.y * (1.0 - sy))))
 			_digit("1", c, 64, accent)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	elif on:
-		_digit("1", c, 64 * 1.6, Color(accent, 0.10))
-		_digit("1", c, 64 * 1.3, Color(accent, 0.25))
+		_glow("1", c, 1.6, Color(accent, 0.10))
+		_glow("1", c, 1.3, Color(accent, 0.25))
 		_digit("1", c, 64, accent)
 	else:
 		_digit("0", c, 64, DIM)
@@ -304,3 +310,13 @@ func _text_left(s: String, pos: Vector2, size: int, color: Color) -> void:
 ## A digit centred on `center` by cap height, so scaled glow copies stay concentric.
 func _digit(s: String, center: Vector2, size: int, color: Color) -> void:
 	draw_string(font, Vector2(center.x - 640.0, center.y + 0.36 * size), s, HORIZONTAL_ALIGNMENT_CENTER, 1280, size, color)
+
+
+## A glow copy of the 64 px digit: the same glyph scaled by `k` about the ink centre of the glyph (so it is
+## concentric with the plain digit), under an optional outer transform `outer`.
+func _glow(s: String, center: Vector2, k: float, color: Color, outer: Transform2D = Transform2D.IDENTITY) -> void:
+	var pivot := center + ONE_INK
+	var scale_about := Transform2D(0.0, Vector2(k, k), 0.0, pivot * (1.0 - k))
+	draw_set_transform_matrix(outer * scale_about)
+	_digit(s, center, 64, color)
+	draw_set_transform_matrix(outer)
