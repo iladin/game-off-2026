@@ -127,7 +127,8 @@ func _popup(pos: Vector2, text: String, color: Color, hold: float = R.POPUP_FADE
 	add_child(label)
 	var t := label.create_tween().set_parallel(true)
 	t.tween_property(label, "position:y", label.position.y - R.POPUP_RISE, life).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	t.tween_property(label, "modulate:a", 0.0, life - hold).set_delay(hold)
+	# alpha comes from Rules.popup_alpha(age, hold, life): the same numbers the selftest pins
+	t.tween_method(func(age: float) -> void: label.modulate.a = R.popup_alpha(age, hold, life), 0.0, life, life)
 	t.chain().tween_callback(label.queue_free)
 
 

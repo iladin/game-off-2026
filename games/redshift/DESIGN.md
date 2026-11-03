@@ -143,7 +143,7 @@ No sound per shot (6 shots a second would eat the 12 voices); the shots are seen
 
 ## Build plan (scripts, data structures, every tunable with a start value)
 Files (target ~800 lines, each under 300):
-- `rules.gd` (~250 lines, pure: no nodes, no autoloads; a passed-in `RandomNumberGenerator`): constants, inner classes `Enemy`, `Shot`, `Run`; static `ramp_time`, `enemy_speed`, `spawn_gap`, `spawn_bands`, `phase_name`, `hints_on`, `is_grace`, `shift`, `step`, `kill_points`, `shift_pitch`, `final_score`, `loop_notes`, `tap_target`, `follow_dir`.
+- `rules.gd` (~250 lines, pure: no nodes, no autoloads; a passed-in `RandomNumberGenerator`): constants, inner classes `Enemy`, `Shot`, `Run`; static `ramp_time`, `enemy_speed`, `spawn_gap`, `spawn_bands`, `phase_name`, `hints_on`, `is_grace`, `shift`, `step`, `kill_points`, `shift_pitch`, `final_score`, `loop_notes`, `tap_target`, `follow_dir`, `popup_pos`, `dodge_pos` (where the DODGE popup goes), `popup_alpha(age, hold, life)` (full alpha through the hold, then linear fade; game.gd `_popup` drives the label alpha from it each frame with `DODGE_HOLD`/`DODGE_LIFE`), `popup_rise`, `stagger_pos`.
 - `rules_bot.gd` (pure, no nodes; preloaded as `Bot`; takes `R.Run`): static `target(s) -> Enemy` (nearest enemy with `x > SHIP_X + 30`, or null), `bot_think(s) -> Dictionary` (`{shift: -1/0/1, aim_y: float}`), `sim_round(seed, difficulty, mode := "bot") -> Dictionary` (`won`, `time`, `crashes`, `first_crash`, `kills`, `escapes`, `shifts`, `score`; modes `"bot"`, `"idle"`).
 - `selftest.gd` (~100 lines): the assertions in the checklist; prints `SELFTEST OK`.
 - `game.gd` (~250 lines, `extends MicroGame`): state, `begin()` (seed stars, `Run.new()`), `_process()`, `_unhandled_input()`, `_shift(dir)`, `_on_events(ev)`, `_crash()`, `_draw()` that only calls the draw helpers.
@@ -199,6 +199,8 @@ In the model it never crashes at difficulty 0 or 1 (seeds 1-20), kills 42-55 ene
 - Gamepad support (a free bonus at most).
 
 ## QA
-Autoplay seeds its RNG with `QA_SEED = 7` (`game.gd`), so autoplay rounds are repeatable; `-- --seed=N` overrides it. `./scripts/shots.sh redshift 2550` shows a blue heavy (1.5x, 3 hp squares) at the top right.
+Autoplay seeds its RNG with `QA_SEED = 7` (`game.gd`), so autoplay rounds are repeatable; `-- --seed=N` overrides it.
+
+**Deterministic DODGE shot:** `--seed=4`, idle (no autoplay), `--shotframes=470` shows the DODGE popup at full INK (seed 4's first idle crash is about game frame 420, inside grace): `xvfb-run -a -s "-screen 0 1280x720x24" .tools/godot --path . --rendering-driver opengl3 --audio-driver Dummy --resolution 1280x720 --fixed-fps 60 -- --game=redshift --seed=4 --shotfile=.tools/shots-rs17/d470.png --shotframes=470`. `./scripts/shots.sh redshift 2550` shows a blue heavy (1.5x, 3 hp squares) at the top right.
 
 Formations: autoplay bot (seeds 1, 2, 3, 7) wins every round, scores about 2,600-2,830 at difficulty 0 (the rules.gd `sim_round` model and its numbers above predate formations: they model single spawns). `./scripts/shots.sh redshift 1200` shows a lime line of 3 plus the next formation entering at the right.

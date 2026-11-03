@@ -148,6 +148,7 @@ func _init() -> void:
 	var src := FileAccess.get_file_as_string("res://games/redshift/game.gd")
 	var jsrc := FileAccess.get_file_as_string("res://shared/juice.gd")
 	_t(src.contains("R.POPUP_SIZE") and src.contains("R.POPUP_RISE") and src.contains("R.POPUP_FADE_DELAY"), "game.gd popup uses R constants")
+	_t(src.contains("R.popup_alpha(age, hold, life)") and not src.contains('"modulate:a"') and src.contains("R.DODGE_HOLD, R.DODGE_LIFE"), "live popup fade is driven by Rules.popup_alpha with DODGE_HOLD/DODGE_LIFE")
 	_t(not src.contains("Juice.popup("), "game.gd has no second popup path")
 	_t(jsrc.contains("position.y - %d.0" % int(R.POPUP_RISE)), "POPUP_RISE matches Juice.popup rise")
 	_t(R.POPUP_FADE_DELAY > 0.25 and R.POPUP_FADE_DELAY < R.POPUP_LIFE, "popup fades later than Juice default")
