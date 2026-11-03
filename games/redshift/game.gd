@@ -12,6 +12,8 @@ const LOOP_BPM := 150.0
 const LOOP_RESTART := 0.5
 const STAR_COUNT := 36
 const QA_SEED := 7
+const NO_POINTER := -1
+const MOUSE_ID := -2  # touch finger indices are 0, 1, ...
 const FORM_SIZE := 3  # enemies released per spawn event
 const FORM_DX := 60.0  # V wings sit this far behind the leader
 const FORM_DY := 70.0  # vertical spacing inside a formation
@@ -32,6 +34,7 @@ var lives: int = R.LIVES
 var think: float = 0.0
 var bot_aim_y: float = R.SHIP_Y0
 var ptr_down: bool = false
+var steer_id: int = NO_POINTER  # the pointer (finger index or MOUSE_ID) that is steering
 var ptr_y: float = 0.0
 var last_phase: String = ""
 var banner_text: String = ""
@@ -76,6 +79,7 @@ func begin() -> void:
 	think = 0.0
 	bot_aim_y = R.SHIP_Y0
 	ptr_down = false
+	steer_id = NO_POINTER
 	last_phase = ""
 	banner_text = ""
 	banner_t = 0.0
@@ -232,20 +236,37 @@ func _unhandled_input(event: InputEvent) -> void:
 		match event.physical_keycode:
 			KEY_LEFT, KEY_A: _shift(-1)
 			KEY_RIGHT, KEY_D: _shift(1)
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if not event.pressed:
-			ptr_down = false
-			return
-		var tg := R.tap_target(event.position)
-		if tg == R.TAP_BRAKE:
-			_shift(-1)
-		elif tg == R.TAP_BOOST:
-			_shift(1)
-		elif tg == R.TAP_MOVE:
-			ptr_down = true
+	elif event is InputEventScreenTouch:
+		_pointer_button(event.index, event.pressed, event.position)
+	elif event is InputEventScreenDrag:
+		if event.index == steer_id:
 			ptr_y = event.position.y
-	elif event is InputEventMouseMotion and ptr_down:
-		ptr_y = event.position.y
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.device == InputEvent.DEVICE_ID_EMULATION:
+			return  # emulated from a touch: the ScreenTouch already handled it
+		_pointer_button(MOUSE_ID, event.pressed, event.position)
+	elif event is InputEventMouseMotion and steer_id == MOUSE_ID:
+		if event.device != InputEvent.DEVICE_ID_EMULATION:
+			ptr_y = event.position.y
+
+
+## One pointer (touch finger index, or MOUSE_ID) went down or up. Each pointer is
+## tracked by its own id: one steers, others can tap the BRAKE / BOOST pads.
+func _pointer_button(id: int, pressed: bool, pos: Vector2) -> void:
+	if not pressed:
+		if id == steer_id:
+			steer_id = NO_POINTER
+			ptr_down = false
+		return
+	var tg := R.tap_target(pos)
+	if tg == R.TAP_BRAKE:
+		_shift(-1)
+	elif tg == R.TAP_BOOST:
+		_shift(1)
+	elif tg == R.TAP_MOVE and steer_id == NO_POINTER:
+		steer_id = id
+		ptr_down = true
+		ptr_y = pos.y
 
 
 func _shift(dir: int) -> void:
