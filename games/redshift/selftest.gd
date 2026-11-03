@@ -119,9 +119,27 @@ func _init() -> void:
 	var b := Vector2(500, 300)
 	_t(R.stagger_pos(b, 1.0, []) == b, "stagger: alone")
 	_t(R.stagger_pos(b, 1.2, [{"pos": b + Vector2(30, 0), "t": 1.0}]).y == b.y + R.STAGGER_DY, "stagger: close kill drops")
-	_t(R.stagger_pos(b, 1.2, [{"pos": b, "t": 1.0}, {"pos": b + Vector2(0, 20), "t": 1.1}]).y == b.y + 2.0 * R.STAGGER_DY, "stagger: third stacks")
+	var third := R.stagger_pos(b, 1.2, [{"pos": b, "t": 1.0, "out": b}, {"pos": b + Vector2(0, 20), "t": 1.1, "out": b + Vector2(0, 66)}])
+	_t(third.y == b.y + R.STAGGER_MAX_DROP, "stagger: third stacks (capped)")
 	_t(R.stagger_pos(b, 1.5, [{"pos": b, "t": 1.0}]) == b, "stagger: too late")
 	_t(R.stagger_pos(b, 1.2, [{"pos": b + Vector2(90, 0), "t": 1.0}]) == b, "stagger: too far")
+	# earlier popup placed LOWER than this base: gap is measured from it, at least DY after rise too
+	var rz := R.stagger_pos(Vector2(500, 300), 1.28, [{"pos": Vector2(500, 370), "t": 1.0, "out": Vector2(500, 370)}])
+	_t(rz.y - (370.0 - R.popup_rise(0.28)) >= R.STAGGER_DY and rz.y > 300.0, "stagger: matches earlier popup by its risen position")
+	var hi := R.stagger_pos(b, 1.2, [{"pos": b + Vector2(0, 20), "t": 1.0, "out": b + Vector2(0, 20)}])
+	_t(hi.y - (b.y + 20.0) >= R.STAGGER_DY, "stagger: gap from earlier spawn >= DY")
+	_t(hi.y - (b.y + 20.0 - R.popup_rise(0.2)) >= R.STAGGER_DY, "stagger: gap from earlier risen pos >= DY")
+	_t(R.popup_rise(0.0) == 0.0 and R.popup_rise(R.POPUP_LIFE) == R.POPUP_RISE and R.popup_rise(0.2) > 0.0, "popup_rise curve")
+	# top clamp: stagger stays within 2 levels and above the pad area, popup top still clear of the HUD
+	var tp := R.popup_pos(Vector2(500, 0))
+	var chain: Array = []
+	var last := tp
+	for i in 5:
+		last = R.stagger_pos(tp, 1.0 + 0.01 * i, chain)
+		chain.append({"pos": tp, "t": 1.0 + 0.01 * i, "out": last})
+		_t(last.y <= tp.y + R.STAGGER_MAX_DROP and last.y < R.BRAKE_RECT.position.y and last.y - R.POPUP_SIZE - R.POPUP_RISE >= R.HUD_BOTTOM, "stagger bound at top clamp i=%d" % i)
+	var low := R.stagger_pos(Vector2(500, 580), 1.1, [{"pos": Vector2(500, 580), "t": 1.0, "out": Vector2(500, 580)}])
+	_t(low.y <= R.STAGGER_MAX_Y, "stagger stops above the pads")
 	_t(R.STAGGER_DY >= R.POPUP_SIZE, "stagger clears label height")
 	# popup constants must be the ones game.gd draws with and the ones Juice.popup rises by
 	var src := FileAccess.get_file_as_string("res://games/redshift/game.gd")

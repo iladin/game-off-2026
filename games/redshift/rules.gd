@@ -24,6 +24,8 @@ const HUD_BOTTOM := 64.0
 const STAGGER_TIME := 0.3  # popups this close in time AND space would overlap: later ones drop down
 const STAGGER_DIST := 40.0
 const STAGGER_DY := 46.0  # label line height at 36 px plus outline, so stacked labels do not touch
+const STAGGER_MAX_DROP := 92.0  # at most 2 stacked levels below the base, so a popup near the top clamp stays out of the ship row
+const STAGGER_MAX_Y := 586.0  # BRAKE_RECT top (598) minus 12: staggering never reaches the pad area
 const POPUP_MIN_Y := HUD_BOTTOM + POPUP_RISE + POPUP_SIZE + 2.0  # 168: final label top = 66
 const SHIP_Y0 := 340.0
 const SHIP_Y_MIN := 110.0
@@ -270,12 +272,30 @@ static func step(s: Run, dt: float, r: float, move: float, rng: RandomNumberGene
 	return ev
 
 
-## Offset for a popup whose (clamped) base position is p. recent = [{pos, t}] of earlier popups'
-## base positions and game times. Each earlier one within STAGGER_TIME and STAGGER_DIST pushes
-## this one STAGGER_DY lower, so close kills stack readable instead of overlapping.
+## Rise of a popup after `age` seconds: Juice's ease-out cubic over POPUP_LIFE, up to POPUP_RISE.
+static func popup_rise(age: float) -> float:
+	var k := clampf(age / POPUP_LIFE, 0.0, 1.0)
+	return POPUP_RISE * (1.0 - pow(1.0 - k, 3.0))
+
+
+## Where a popup whose (clamped) base position is p goes. recent = [{pos, t, out}]: earlier popups'
+## base position, game time and placed (staggered) position. Each earlier popup within STAGGER_TIME
+## and STAGGER_DIST of p (measured to its spawn OR its current risen position) forces this one to sit at least STAGGER_DY below the earlier one's placed
+## spawn position (not below p: a base that is higher than the earlier one would leave a small gap).
+## Both labels rise by the same curve and the earlier one is ahead on it, so the visible gap only
+## grows from there; and since the earlier label has already risen popup_rise(age), this spot is
+## also at least STAGGER_DY below where that label is drawn now. The result never goes below
+## STAGGER_MAX_Y (pad area) nor more than STAGGER_MAX_DROP below p (ship row).
 static func stagger_pos(p: Vector2, now: float, recent: Array) -> Vector2:
-	var n := 0
-	for e in recent:
-		if now - float(e.t) <= STAGGER_TIME and p.distance_to(e.pos) <= STAGGER_DIST:
-			n += 1
-	return p + Vector2(0.0, STAGGER_DY * n)
+	var y := p.y
+	var sorted := recent.duplicate()
+	sorted.sort_custom(func(a, b): return float(a.t) < float(b.t))
+	for e in sorted:
+		if now - float(e.t) > STAGGER_TIME:
+			continue
+		var ey: float = float(e.out.y) if e.has("out") else float(e.pos.y)
+		var cur := Vector2(float(e.pos.x), ey - popup_rise(now - float(e.t)))  # where it is drawn now
+		if p.distance_to(e.pos) <= STAGGER_DIST or p.distance_to(cur) <= STAGGER_DIST:
+			y = maxf(y, ey + STAGGER_DY)
+	y = minf(y, maxf(p.y, minf(p.y + STAGGER_MAX_DROP, STAGGER_MAX_Y)))
+	return Vector2(p.x, y)

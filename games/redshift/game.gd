@@ -106,7 +106,7 @@ func _popup_pos(p: Vector2) -> Vector2:
 	var base := R.popup_pos(p)
 	popup_log = popup_log.filter(func(e): return t - float(e.t) <= R.STAGGER_TIME)
 	var out := R.stagger_pos(base, t, popup_log)
-	popup_log.append({"pos": base, "t": t})
+	popup_log.append({"pos": base, "t": t, "out": out})
 	return out
 
 

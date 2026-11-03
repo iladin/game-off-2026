@@ -133,7 +133,7 @@ No sound per shot (6 shots a second would eat the 12 voices); the shots are seen
 | # | Event (trigger in game.gd) | Effect | State set there, read in drawing |
 |---|---|---|---|
 | 1 | `EV_SHIFT` | ship squashes 1.25x wide then back over 0.12 s; a ring (circle outline 6 px, band colour) expands from the ship from r 24 to 90 and fades over 0.25 s; star streaks and flame follow `k` | `shift_fx_t = 0.25` |
-| 2 | `EV_KILL` | `Juice.burst(self, pos, BAND_COL[band], 14)`; popup `+N` GOOD 36 px, full alpha until 0.55 s; popups within 0.3 s and 40 px of an earlier one drop 46 px each (`Rules.stagger_pos`); heavy kill: `Juice.flash(Color(INK, 0.15), 0.1)`, `Juice.shake(10)`, hitstop 0.05 | `kill_rings` (array of `{pos, band, t = 0.2}`: an expanding outline of the enemy's shape) |
+| 2 | `EV_KILL` | `Juice.burst(self, pos, BAND_COL[band], 14)`; popup `+N` GOOD 36 px, full alpha until 0.55 s; popups within 0.3 s and 40 px of an earlier one sit at least 46 px below that popup's placed spawn position, which is also below where it is drawn after rising (`Rules.stagger_pos`, `popup_rise`); capped 92 px below the base and above y 586 so they never reach the ship row or pads; heavy kill: `Juice.flash(Color(INK, 0.15), 0.1)`, `Juice.shake(10)`, hitstop 0.05 | `kill_rings` (array of `{pos, band, t = 0.2}`: an expanding outline of the enemy's shape) |
 | 3 | `EV_DAMAGE` | the heavy flashes INK fill for 0.06 s and squashes 1.25 to 1.0 over 0.12 s | `enemy.flash_t` kept in a game-side Dictionary keyed by the enemy |
 | 4 | `EV_BLOCK` | DIM spark at the block point | `sparks` (array of `{pos, t = 0.1}`) |
 | 5 | Crash in grace | ship tinted BAD 0.2 s; `Juice.shake(4)`; popup `DODGE` INK 36 px at the ship | `tint_t = 0.2` |
