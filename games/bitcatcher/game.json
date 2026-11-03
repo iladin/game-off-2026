@@ -6,6 +6,6 @@
   "genre": "falling-bit puzzle",
   "shift": "The bit shift: rotate your 8-bit register left or right so each falling 1 lands in a socket the target byte needs.",
   "sense": "BIT",
-  "status": "draft",
+  "status": "shipped",
   "slot": 4
 }
