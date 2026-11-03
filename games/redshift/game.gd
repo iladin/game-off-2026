@@ -1,119 +1,280 @@
 extends MicroGame
-## TEMPLATE game ("Zone"): a marker shifts back and forth along a bar; press while
-## it's inside the green zone. Hits shrink the zone and speed the marker up.
-## 3 misses = game over; 15 hits = clear. It exists to show the MicroGame contract:
-## begin() / finish(score, won), autoplay bot, Synth, Juice, rules.gd + selftest.
-## Replace the gameplay when you build a real game; keep the structure.
+## Red Shift: change speed to change hue; your auto-fire only hurts enemies of your hue.
 
-const Rules := preload("res://games/redshift/rules.gd")
+const R := preload("res://games/redshift/rules.gd")
+const D := preload("res://games/redshift/redshift_draw.gd")
 
-# --- Tunables -------------------------------------------------------------------
-const BG := Color("101018")
-const BAR := Color("2a2a3a")
-const ZONE := Color("4ade80")
-const MARKER := Color("f8fafc")
-const DANGER := Color("f43f5e")
-const BAR_RECT := Rect2(160, 330, 960, 60)
-const MAX_MISSES := 3
-const HITS_TO_CLEAR := 15
-const INTRO_TIME := 0.8
+const INTRO := 0.6
+const BANNER_TIME := 1.2
+const LOOP_VOL := 0.10
+const LOOP_BPM := 150.0
+const LOOP_RESTART := 0.5
+const STAR_COUNT := 36
 
-var hits: int = 0
-var misses: int = 0
-var score: int = 0
-var marker_x: float = 0.0
-var direction: float = 1.0
-var zone_center: float = 640.0
+var rng := RandomNumberGenerator.new()
+var run: R.Run = R.Run.new()
+var stars: Array = [PackedVector2Array(), PackedVector2Array(), PackedVector2Array()]
+var grid_x: float = 0.0
 var intro: float = 0.0
-var bot_cooldown: float = 0.0
-var font: Font = ThemeDB.fallback_font
+var intro_blip: bool = false
+var t: float = 0.0
+var r: float = 0.0
+var anim: float = 0.0
+var score: int = 0
+var lives: int = R.LIVES
+var think: float = 0.0
+var bot_aim_y: float = R.SHIP_Y0
+var ptr_down: bool = false
+var ptr_y: float = 0.0
+var last_phase: String = ""
+var banner_text: String = ""
+var banner_t: float = 0.0
+var shift_fx_t: float = 0.0
+var fx_col: Color = D.BAND_COL[1]
+var kill_rings: Array = []
+var sparks: Array = []
+var hit_flash: Dictionary = {}
+var tint_t: float = 0.0
+var life_flash_t: float = 0.0
+var loop_restart_t: float = 0.0
+var pad_t: Array[float] = [0.0, 0.0]
+var pad_dead: Array[bool] = [false, false]
+var tick_t: float = 0.0
+var thud_t: float = 0.0
+var BAND_COL_NOW: Color = D.BAND_COL[1]
 
 
 func begin() -> void:
-	hits = 0
-	misses = 0
+	rng.randomize()
+	run = R.Run.new()
+	for l in 3:
+		var arr := PackedVector2Array()
+		for i in STAR_COUNT:
+			arr.append(Vector2(rng.randf_range(-20.0, 1300.0), rng.randf_range(80.0, 590.0)))
+		stars[l] = arr
+	grid_x = 0.0
+	intro = INTRO
+	intro_blip = false
+	t = 0.0
+	r = R.ramp_time(0.0, difficulty)
+	anim = 0.0
 	score = 0
-	marker_x = BAR_RECT.position.x
-	direction = 1.0
-	intro = INTRO_TIME
-	_place_zone()
-	Synth.loop([60, 0, 67, 0, 64, 0, 67, 72], 128.0)
+	lives = R.LIVES
+	think = 0.0
+	bot_aim_y = R.SHIP_Y0
+	ptr_down = false
+	last_phase = ""
+	banner_text = ""
+	banner_t = 0.0
+	shift_fx_t = 0.0
+	kill_rings.clear()
+	sparks.clear()
+	hit_flash.clear()
+	tint_t = 0.0
+	life_flash_t = 0.0
+	loop_restart_t = 0.0
+	pad_t = [0.0, 0.0]
+	pad_dead = [false, false]
+	tick_t = 0.0
+	thud_t = 0.0
+	BAND_COL_NOW = D.BAND_COL[run.band]
+	Synth.stop_loop()
+	Synth.sfx("blip")
 
 
-func _place_zone() -> void:
-	var w := Rules.zone_width(hits)
-	zone_center = randf_range(BAR_RECT.position.x + w * 0.5, BAR_RECT.end.x - w * 0.5)
-
-
-func _process(delta: float) -> void:
+func _process(dt: float) -> void:
+	anim += dt
 	queue_redraw()
 	if is_finished():
 		return
+	_tick_fx(dt)
 	if intro > 0.0:
-		intro -= delta
+		intro -= dt
+		if not intro_blip and intro <= INTRO - 0.3:
+			intro_blip = true
+			Synth.sfx("blip")
+		if intro <= 0.0:
+			_apply_loop()
 		return
-	marker_x += direction * Rules.marker_speed(hits) * delta
-	if marker_x > BAR_RECT.end.x or marker_x < BAR_RECT.position.x:
-		direction = -direction
-		marker_x = clampf(marker_x, BAR_RECT.position.x, BAR_RECT.end.x)
+	t += dt
+	r = R.ramp_time(t, difficulty)
+	var move := 0.0
 	if autoplay:
-		_bot(delta)
+		think -= dt
+		if think <= 0.0:
+			think = R.BOT_THINK
+			var d := R.bot_think(run)
+			if d.shift != 0:
+				_shift(d.shift)
+			bot_aim_y = d.aim_y
+		move = R.follow_dir(bot_aim_y, run.ship_y)
+	else:
+		move = _key_move()
+		if move == 0.0 and ptr_down:
+			move = R.follow_dir(ptr_y, run.ship_y)
+	var sb := run.streak
+	var ev := R.step(run, dt, r, move, rng)
+	if _on_events(ev, sb):
+		return
+	if t >= R.ROUND_TIME:
+		finish(R.final_score(score, lives), true)
+		return
+	var k := run.k
+	grid_x = fposmod(grid_x + D.GRID_SPEED * k * dt, 40.0)
+	for l in 3:
+		var arr: PackedVector2Array = stars[l]
+		for i in arr.size():
+			var p := arr[i]
+			p.x -= D.STAR_SPEED[l] * k * dt
+			if p.x < -20.0:
+				p.x += 1320.0
+			arr[i] = p
+		stars[l] = arr
+	var ph := R.phase_name(r)
+	if ph != last_phase:
+		last_phase = ph
+		if ph != "":
+			banner_text = ph
+			banner_t = BANNER_TIME
+			Synth.sfx("blip", 1.5)
 
 
-func _bot(delta: float) -> void:
-	# A decent but imperfect player: presses when close to the zone centre.
-	bot_cooldown -= delta
-	if bot_cooldown <= 0.0 and absf(marker_x - zone_center) < Rules.zone_width(hits) * randf_range(0.2, 0.7):
-		bot_cooldown = 0.25
-		_press()
+func _tick_fx(dt: float) -> void:
+	shift_fx_t = maxf(0.0, shift_fx_t - dt)
+	tint_t = maxf(0.0, tint_t - dt)
+	life_flash_t = maxf(0.0, life_flash_t - dt)
+	banner_t = maxf(0.0, banner_t - dt)
+	tick_t = maxf(0.0, tick_t - dt)
+	thud_t = maxf(0.0, thud_t - dt)
+	for i in 2:
+		pad_t[i] = maxf(0.0, pad_t[i] - dt)
+	for e in hit_flash.keys():
+		hit_flash[e] -= dt
+		if hit_flash[e] <= 0.0:
+			hit_flash.erase(e)
+	for kr in kill_rings:
+		kr.t -= dt
+	kill_rings = kill_rings.filter(func(x): return x.t > 0.0)
+	for sp in sparks:
+		sp.t -= dt
+	sparks = sparks.filter(func(x): return x.t > 0.0)
+	if loop_restart_t > 0.0:
+		loop_restart_t -= dt
+		if loop_restart_t <= 0.0:
+			_apply_loop()
+
+
+func _apply_loop() -> void:
+	if loop_restart_t > 0.0 or intro > 0.0:
+		return
+	Synth.loop(R.loop_notes(run.band), LOOP_BPM, "square", LOOP_VOL)
+
+
+func _key_move() -> float:
+	var m := 0.0
+	if Input.is_physical_key_pressed(KEY_UP) or Input.is_physical_key_pressed(KEY_W):
+		m -= 1.0
+	if Input.is_physical_key_pressed(KEY_DOWN) or Input.is_physical_key_pressed(KEY_S):
+		m += 1.0
+	return m
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if autoplay or is_finished() or intro > 0.0:
 		return
-	var key := event.is_action_pressed("ui_accept")
-	var tap: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
-	if key or tap:
-		_press()
-
-
-func _press() -> void:
-	var w := Rules.zone_width(hits)
-	var p := Rules.points(marker_x, zone_center, w)
-	var at := Vector2(marker_x, BAR_RECT.get_center().y)
-	if p > 0:
-		hits += 1
-		score += p
-		Synth.sfx("coin", 1.0 + 0.04 * hits)
-		Juice.burst(self, at, ZONE)
-		Juice.popup(self, at - Vector2(0, 40), "PERFECT +2" if p == 2 else "+1", ZONE)
-		if hits >= HITS_TO_CLEAR:
-			finish(score, true)
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.physical_keycode:
+			KEY_LEFT, KEY_A: _shift(-1)
+			KEY_RIGHT, KEY_D: _shift(1)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if not event.pressed:
+			ptr_down = false
 			return
-		_place_zone()
-	else:
-		misses += 1
-		Synth.sfx("miss")
-		Juice.shake(10.0)
-		Juice.flash(Color(DANGER, 0.3))
-		if misses >= MAX_MISSES:
-			finish(score, false)
+		var tg := R.tap_target(event.position)
+		if tg == R.TAP_BRAKE:
+			_shift(-1)
+		elif tg == R.TAP_BOOST:
+			_shift(1)
+		elif tg == R.TAP_MOVE:
+			ptr_down = true
+			ptr_y = event.position.y
+	elif event is InputEventMouseMotion and ptr_down:
+		ptr_y = event.position.y
+
+
+func _shift(dir: int) -> void:
+	if is_finished() or intro > 0.0:
+		return
+	var pi := 0 if dir < 0 else 1
+	pad_t[pi] = 0.12
+	if R.shift(run, dir) == 0:
+		pad_dead[pi] = true
+		return
+	pad_dead[pi] = false
+	shift_fx_t = 0.25
+	fx_col = D.BAND_COL[run.band]
+	BAND_COL_NOW = fx_col
+	Synth.sfx("shift", R.shift_pitch(run.streak))
+	loop_restart_t = 0.0
+	_apply_loop()
+
+
+## Returns true when the round ended.
+func _on_events(ev: int, streak_before: int) -> bool:
+	var n_sfx := 0
+	for e in run.hurt:
+		hit_flash[e] = 0.12
+	for sp in run.blocked:
+		sparks.append({"pos": sp, "t": 0.1})
+	for i in run.kills.size():
+		var kd: Dictionary = run.kills[i]
+		score += kd.pts
+		var sbf := run.streak - run.kills.size() + i
+		kill_rings.append({"pos": kd.pos, "band": kd.band, "heavy": kd.heavy, "t": 0.2})
+		Synth.sfx("hit", rng.randf_range(0.92, 1.08))
+		Synth.sfx("coin", pow(2.0, mini(sbf, 12) / 12.0))
+		n_sfx += 2
+		Juice.burst(self, kd.pos, D.BAND_COL[kd.band], 14)
+		Juice.popup(self, kd.pos - Vector2(0, 30), "+%d" % kd.pts, D.GOOD, 32)
+		if kd.heavy:
+			Juice.flash(Color(D.INK, 0.15), 0.1)
+			Juice.shake(10.0)
+			Juice.hitstop(0.05)
+	if ev & R.EV_DAMAGE and tick_t <= 0.0 and n_sfx < 2:
+		tick_t = 0.08
+		n_sfx += 1
+		Synth.tone(660.0, 0.04, "square", 0.12)
+	if ev & R.EV_BLOCK and thud_t <= 0.0 and n_sfx < 2:
+		thud_t = 0.2
+		Synth.tone(180.0, 0.03, "noise", 0.08)
+	if ev & R.EV_ESCAPE and streak_before >= 3:
+		Synth.sfx("miss", 0.9)
+	if ev & R.EV_CRASH:
+		if R.is_grace(r):
+			tint_t = 0.2
+			Juice.shake(4.0)
+			Synth.sfx("miss", rng.randf_range(0.92, 1.08))
+			Juice.popup(self, Vector2(R.SHIP_X, run.ship_y - 40.0), "DODGE", D.DIM, 32)
+		else:
+			lives -= 1
+			life_flash_t = 0.4
+			Juice.flash(Color(D.BAD, 0.35), 0.2)
+			Juice.shake(14.0)
+			Juice.hitstop(0.06)
+			Juice.burst(self, run.crash_pos, D.BAD, 14)
+			Synth.sfx("boom", rng.randf_range(0.95, 1.05))
+			Synth.stop_loop()
+			loop_restart_t = LOOP_RESTART
+			if lives <= 0:
+				finish(score, false)
+				return true
+	return false
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, view_size()), BG)
-	draw_rect(BAR_RECT, BAR)
-	var w := Rules.zone_width(hits)
-	draw_rect(Rect2(zone_center - w * 0.5, BAR_RECT.position.y, w, BAR_RECT.size.y), ZONE.darkened(0.3))
-	draw_rect(Rect2(zone_center - w / 6.0, BAR_RECT.position.y, w / 3.0, BAR_RECT.size.y), ZONE)
-	draw_rect(Rect2(marker_x - 4, BAR_RECT.position.y - 20, 8, BAR_RECT.size.y + 40), MARKER)
-	draw_string(font, Vector2(0, 150), "%d" % score, HORIZONTAL_ALIGNMENT_CENTER, 1280, 72, MARKER)
-	for i in MAX_MISSES: # lives: filled = left, ring = lost (draw shapes; the web font has no symbols)
-		var c := Vector2(640 + (i - 1) * 36, 200)
-		if i >= misses:
-			draw_circle(c, 11, DANGER)
-		else:
-			draw_arc(c, 11, 0, TAU, 24, DANGER, 2.0)
-	draw_string(font, Vector2(0, 520), "Space / tap when the marker is in the green", HORIZONTAL_ALIGNMENT_CENTER, 1280, 28, MARKER.darkened(0.4))
-	if intro > 0.0:
-		draw_string(font, Vector2(0, 460), "READY", HORIZONTAL_ALIGNMENT_CENTER, 1280, 56, ZONE)
+	D.draw_space(self, self)
+	D.draw_shots(self, self)
+	D.draw_enemies(self, self)
+	D.draw_ship(self, self)
+	D.draw_pads(self, self)
+	D.draw_hud(self, self)

@@ -6,6 +6,6 @@
   "genre": "side-scrolling shmup",
   "shift": "Redshift and blueshift: brake to shift your hue red, boost to shift it blue; your shots only hurt enemies of your hue.",
   "sense": "RED",
-  "status": "draft",
+  "status": "shipped",
   "slot": 8
 }
