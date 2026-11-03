@@ -210,6 +210,7 @@ func _gauntlet_next() -> void:
 	_swap(g)
 	_result.visible = false
 	_back_btn.visible = true
+	_gauntlet_label.text = _gauntlet_text()
 	_gauntlet_label.visible = true
 	_gauntlet_lives.visible = true
 	_gauntlet_lives.queue_redraw()
@@ -235,7 +236,7 @@ func _gauntlet_tick(delta: float) -> void:
 	var gs: Variant = _gauntlet_game.get("score")
 	var before: int = _gauntlet["index"]
 	_gauntlet = GauntletRules.tick(_gauntlet, delta, int(gs) if gs is int or gs is float else 0)
-	_gauntlet_label.text = GauntletRules.status(_gauntlet)
+	_gauntlet_label.text = _gauntlet_text()
 	_gauntlet_lives.queue_redraw()
 	if int(_gauntlet["index"]) != before:
 		var g := _gauntlet_game
@@ -246,11 +247,15 @@ func _gauntlet_tick(delta: float) -> void:
 		_gauntlet_next()
 
 
+func _gauntlet_text() -> String:
+	return "GAME %d OF %d\nTIME %.1f\nRUN LIVES" % [mini(int(_gauntlet["index"]) + 1, int(_gauntlet["n"])), int(_gauntlet["n"]), GauntletRules.time_left(_gauntlet)]
+
+
 func _draw_gauntlet_lives() -> void:
 	if _gauntlet.is_empty():
 		return
 	for i in GauntletRules.LIVES:
-		var r := Rect2(Vector2(400 + i * 30, 122), Vector2(20, 20))
+		var r := Rect2(Vector2(16 + i * 30, 164), Vector2(20, 20))
 		if i < int(_gauntlet["lives"]):
 			_gauntlet_lives.draw_rect(r, GOOD)
 		else:
@@ -415,8 +420,12 @@ func _build_ui() -> void:
 		to_hub())
 	_back_btn.visible = false
 	_gauntlet_label = _make_label("", 28, GOOD)
-	_gauntlet_label.position = Vector2(340, 112)
-	_gauntlet_label.size = Vector2(600, 44)
+	# Left gutter (x 0-165, y 74+) is outside every game's HUD (art bible: HUD lives in x 170-1090).
+	_gauntlet_label.position = Vector2(14, 76)
+	_gauntlet_label.size = Vector2(150, 84)
+	_gauntlet_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_gauntlet_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_gauntlet_label.add_theme_font_size_override("font_size", 20)
 	_gauntlet_label.visible = false
 	_hud.add_child(_gauntlet_label)
 	_gauntlet_lives = Control.new()
