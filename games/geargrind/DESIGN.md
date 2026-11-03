@@ -214,6 +214,11 @@ Files (target ~600 lines total, each under 300):
 8. **Code read (grep `games/geargrind`):** `Synth.sfx("shift", Rules.shift_pitch(streak))` inside `_shift`; `Synth.loop(` with `140.0, "saw"` and vol 0.09; engine via `Synth.tone(`; no `"win"` / `"lose"` sfx; `difficulty` used only via `Rules.ramp_time`; exactly one `finish(` with `true` and one with `false`.
 9. **Touch and keys:** a mouse/tap press anywhere calls `_shift()` (no `InputEventScreenTouch` handler); Space, Up and W shift; Esc, P and M are not read by the game.
 
+## GO moment (T-0015)
+- At the end of staging (state_t 1.6 s) the three tree lights flash white (INK, bigger glow) for 0.12 s, then settle to GOOD; a 56 px `GO` banner in GOOD appears at y 176 (scale 1.3 to 1.0 over 0.2 s ease-out, fades over its last 0.3 s, 0.9 s total); the lever frame pulses amber at 3 Hz for the same 0.9 s; a faint white screen flash (0.12 alpha, 0.1 s) and the existing `jump` sfx mark the start. Countdown ticks already use `blip`.
+- The `SPACE OR TAP` cue under the lever stays until the first successful shift of the round (`shifted_once`), no longer only heat 1's start.
+- Shots: staging ends at frame ~140 at 60 fps (flash at 143, GO at 150); `play-260` shows the cue gone after the first shift.
+
 ## Out of scope
 - Steering, lane changes, braking, throttle control, clutch, downshifts, a reverse gear: the only verb is shifting up.
 - Jump starts / reaction-time judging at the lights (presses during staging just blip).

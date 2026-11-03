@@ -31,6 +31,8 @@ const SQUAT := 0.85
 const SQUAT_TIME := 0.12
 const FAIL_TINT_TIME := 0.2
 const BANNER_TIME := 1.2
+const GO_TIME := 0.9
+const GO_FLASH := 0.12
 const ENGINE_TICK := 0.09
 const ENGINE_VOL := 0.10
 const IDLE_TICK := 0.18
@@ -86,6 +88,8 @@ var loop_restart_t: float = -1.0
 var top_loop: bool = false
 var bot_target: float = 0.8
 var clock: float = 0.0
+var go_t: float = 0.0
+var shifted_once: bool = false
 
 
 func begin() -> void:
@@ -123,6 +127,8 @@ func begin() -> void:
 	loop_restart_t = -1.0
 	top_loop = false
 	clock = 0.0
+	go_t = 0.0
+	shifted_once = false
 	heat_r = Rules.ramp_time(0.0, difficulty)
 	gears = Rules.gears_for(heat_r)
 	rival_T = Rules.rival_time(gears, heat_r)
@@ -189,6 +195,7 @@ func _process(delta: float) -> void:
 	digit_t = maxf(0.0, digit_t - delta)
 	win_pop_t = maxf(0.0, win_pop_t - delta)
 	banner_t = maxf(0.0, banner_t - delta)
+	go_t = maxf(0.0, go_t - delta)
 	if loop_restart_t > 0.0:
 		loop_restart_t -= delta
 		if loop_restart_t <= 0.0:
@@ -232,7 +239,9 @@ func _stage(delta: float) -> void:
 		state = RACING
 		state_t = 0.0
 		engine_t = 0.0
+		go_t = GO_TIME
 		Synth.sfx("jump")
+		Juice.flash(Color(INK, 0.12), 0.1)
 
 
 func _race(delta: float) -> void:
@@ -284,6 +293,7 @@ func _shift() -> void:
 		return
 	var j := Rules.judge(Rules.rpm(v, g), lo, hi)
 	g += 1
+	shifted_once = true
 	red_t = 0.0
 	_engage()
 	var pts := Rules.shift_points(j)
@@ -375,7 +385,7 @@ func _draw() -> void:
 	SD.draw_backdrop(self)
 	SD.draw_skyline(self, d)
 	SD.draw_road(self, d)
-	SD.draw_lines_and_tree(self, d, lights, state != STAGING, TREE_AT_M)
+	SD.draw_lines_and_tree(self, d, lights, state != STAGING, TREE_AT_M, go_t > GO_TIME - GO_FLASH)
 	var rx := SD.sx(rival_d, d) - SD.CAR_LEN
 	if rx > -200.0 and rx < 1480.0:
 		SD.draw_car(self, Vector2(rx, RIVAL_GROUND), DIM, TRACE, 4.0, 1.0, rival_d / 22.0 * 6.0, false)
@@ -390,6 +400,8 @@ func _draw() -> void:
 	SD.draw_tach(self, shown_rpm, lo, hi, top_gear, red_t, clock, in_band)
 	SD.draw_gear_box(self, g + 1, digit_t / 0.2)
 	var ke := 1.0 - pow(knob_t / KNOB_TIME, 3.0) if knob_t > 0.0 else 1.0
-	SD.draw_lever(self, lerpf(KNOB_KICK, KNOB_REST, ke), in_band, clock, heat <= 1)
+	SD.draw_lever(self, lerpf(KNOB_KICK, KNOB_REST, ke), in_band or go_t > 0.0, clock, not shifted_once)
 	var ba := 1.0 if banner_t > 0.3 else banner_t / 0.3
+	if go_t > 0.0:
+		SD.draw_go(self, GO_TIME - go_t, GO_TIME)
 	SD.draw_hud(self, score, lives, wins, win_pop_t / 0.2, life_flash_t, banner_text, banner_color, ba)

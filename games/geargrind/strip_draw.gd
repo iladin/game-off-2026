@@ -73,7 +73,7 @@ static func _checker(ci: CanvasItem, x: float) -> void:
 		row += 1
 
 
-static func draw_lines_and_tree(ci: CanvasItem, d: float, lit: int, go: bool, tree_m: float) -> void:
+static func draw_lines_and_tree(ci: CanvasItem, d: float, lit: int, go: bool, tree_m: float, flash: bool = false) -> void:
 	_checker(ci, sx(0.0, d))
 	_checker(ci, sx(Rules.TRACK, d))
 	var px := sx(tree_m, d)
@@ -83,9 +83,10 @@ static func draw_lines_and_tree(ci: CanvasItem, d: float, lit: int, go: bool, tr
 	for i in 3:
 		var c := Vector2(px, 228.0 + 40.0 * i)
 		if go:
-			ci.draw_circle(c, 16.0 * 1.6, Color(GOOD, 0.10))
-			ci.draw_circle(c, 16.0 * 1.3, Color(GOOD, 0.25))
-			ci.draw_circle(c, 16.0, GOOD)
+			var lc := INK if flash else GOOD
+			ci.draw_circle(c, 16.0 * (2.2 if flash else 1.6), Color(lc, 0.10))
+			ci.draw_circle(c, 16.0 * (1.7 if flash else 1.3), Color(lc, 0.25))
+			ci.draw_circle(c, 16.0, lc)
 		elif i < lit:
 			ci.draw_circle(c, 16.0 * 1.6, Color(ACCENT, 0.10))
 			ci.draw_circle(c, 16.0 * 1.3, Color(ACCENT, 0.25))
@@ -178,6 +179,14 @@ static func draw_lever(ci: CanvasItem, knob_y: float, hot: bool, t: float, label
 	ci.draw_arc(Vector2(1090, knob_y), 36.0, 0.0, TAU, 32, INK, 4.0)
 	if label:
 		text(ci, "SPACE OR TAP", 1090, 697, 20, DIM, 150.0)
+
+
+## The GO banner: 56 px, eases out (scale 1.3 to 1.0) over the first 0.2 s, then fades.
+static func draw_go(ci: CanvasItem, age: float, life: float) -> void:
+	var k := clampf(age / 0.2, 0.0, 1.0)
+	var ease_k := 1.0 - pow(1.0 - k, 3.0)
+	var a := clampf((life - age) / 0.3, 0.0, 1.0)
+	text(ci, "GO", 640, 176, int(56.0 * lerpf(1.3, 1.0, ease_k)), Color(GOOD, a), 300.0)
 
 
 static func draw_hud(ci: CanvasItem, score: int, lives: int, wins: int, win_k: float, life_flash: float, banner: String, banner_col: Color, banner_alpha: float) -> void:
