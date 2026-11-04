@@ -2,13 +2,38 @@
 
 Format: `- [T-####] P0|P1|P2 | role | game-or-area | title` with an indented `accept:` line (one or more testable criteria) and optional `source:` (review, INBOX, #issue).
 P0 = broken or blocks the jam · P1 = clearly hurts a jam score · P2 = polish. The Producer keeps Ready sorted P0 → P2, then oldest first.
-Next id: T-0064
+Next id: T-0073
 
 ## Ready
 - [T-0031] P1 | release-manager | uppercase (web) | Chromium reports Left/Right Shift location
   accept: in the first web build, a headless Chromium check dispatching ShiftLeft and ShiftRight keydowns shows Upper Case registering the left and right Shift (location 1 and 2); if not, the on-screen key labels show the fallback keys (F/J) that work on the web.
   source: R0011 QA T-0009 (finding 3); R0012 Jam Critic fix 3 (raised to P1; do it with the first web export)
+  status R0018: still blocked; Critic fix 3 asks Daniel to test Left/Right Shift once in his own desktop Chrome (see HANDOVER Needs Daniel 1). QA: also guard the arcade.gd:565 screenshot DirAccess path off web.
   status R0014: first web export DONE (build/web, wasm 38 MB, pck 306 KB, no warnings); the browser check is BLOCKED: no Chromium on the machine (cdn.playwright.dev and storage.googleapis.com are 403 by the allowlist), and running an npm-bundled Chromium (@sparticuz/chromium) was denied by the permission system. Needs Daniel (see HANDOVER). Code reading: F/J fallback already works and is labeled.
+- [T-0065] P1 | gameplay-engineer | nightwatch | Fill the main view: creeper silhouette and scanline
+  accept: in play-300 and play-1200 the main (watched) view shows a creeper silhouette >= 60 px tall (PANEL body + INK eyes, height lerp(60,320,d)), frozen while watched, plus a moving TRACE scanline; no lone few-px dash; check.sh nightwatch PASS.
+  source: R0018 Jam Critic fix 2; QA sweep finding 7
+- [T-0066] P1 | gameplay-engineer | cargoshift | Rogue swell shifts the cargo even in good play
+  accept: every 8-12 s a telegraphed rogue swell shoves the crates 60-120 px to one side and kicks the list >= 6 deg, with a thud tone; crates drift back as the list is corrected; crate x differs >= 60 px between two shots ~2 s apart around a swell (or play-300 vs play-1200); the first 10 s cannot cost a life; check.sh cargoshift PASS.
+  source: R0018 Jam Critic fix 4
+- [T-0067] P1 | gameplay-engineer | phaseshift | Ground at three heights; filled orbs
+  accept: runs step between 3 ground heights (GROUND_Y, -80, -160), every step-up clearable by one jump (selftest asserts <= 160 px); play-1200 shows platforms at >= 2 heights; orbs are filled accent circles >= 20 px across with the bible glow; first obstacle no earlier than 3 s; check.sh phaseshift PASS.
+  source: R0018 Jam Critic fix 5; QA sweep finding 4
+- [T-0068] P1 | platform-engineer | hub | Attract mode: register rotates under the read head; touch footer
+  accept: after 8 s idle the register circular-shifts one cell every 1.2 s under the fixed head (0.15 s ease, shift sound vol 0.3), info panel follows, any input stops it; hub shots at frames 600 and 690 show different games under the head; with a touch flag/last input touch the footer names no keys; hub selftest covers the rotate; check.sh hub PASS.
+  source: R0018 Jam Critic fix 6 (VISION section 7 polish item 3)
+- [T-0069] P1 | platform-engineer | shared | HUB/SOUND touch targets and HUB confirm mid-round
+  accept: the shared HUB and SOUND buttons have hit areas >= 96 px tall (visual may stay 48 px), or HUB needs a second tap within 1.5 s while a round is live (label shows TAP AGAIN); keyboard path unchanged; check.sh hub and one game PASS.
+  source: R0018 QA sweep finding 3 (shared/arcade.gd:605)
+- [T-0070] P1 | gameplay-engineer | redshift | First 10 s teach BRAKE = red, BOOST = blue
+  accept: before the first non-lime enemy, the matching BRAKE or BOOST pad glows/pulses; hue chips >= 28 px tall; start/play-300 shots show the cue; check.sh redshift PASS.
+  source: R0018 QA sweep finding 2
+- [T-0071] P2 | platform-engineer | shared (gauntlet) | OVERFLOW voice and clear card on the grid
+  accept: each interstitial card plays a Synth.tone rising one step per cleared slot (A minor pentatonic; selftest asserts distinct pitches for game 1 vs 5); the clear card draws BG + TRACE grid, not black; the word OVERFLOW appears once (score line reads SCORE n); check.sh hub PASS.
+  source: R0018 Jam Critic fix 7
+- [T-0072] P2 | gameplay-engineer | redshift | Enemy bullets easier to see; one --rstart flag
+  accept: enemy bullets read at a glance in the ember band (radius ~8-9 or a brighter INK ring) in `--autoplay` frame 1500; Red Shift's own `--rstart` arg is replaced by the shared `MicroGame.qa_ramp` flag (round length unchanged); a selftest asserts BULLET_MAX caps live bullets and off-screen bullets are removed; check.sh redshift PASS.
+  source: R0018 QA verify T-0064 (P2 findings 1, 2, 4)
 - [T-0028] P2 | creative-director | hub+VISION | OVERFLOW teaser cell: bless it or hide it
   accept: VISION.md section 2/7/8 and hub/hub.gd agree: either VISION says a dim locked OVERFLOW cell shows from the start (and section 8's cell-span numbers match 9 cells), or a Platform task is filed to hide the cell until `overflow_unlocked()`.
   source: R0011 QA T-0007 (finding 3), T-0021 (finding 3)
@@ -31,6 +56,7 @@ Next id: T-0064
 
 ## Done
 <!-- - [T-####] ... · R#### · <sha> -->
+- [T-0064] P1 | gameplay-engineer | redshift | Formations return fire (band-coloured bullets from r >= 20 s) · R0018 · 48facc0
 - [T-0056] P2 | gameplay-engineer | geargrind | Popup slots clear of the tach (free-y picker; passed after one fix round) · R0017 · ba3f475
 - [T-0058] P2 | gameplay-engineer | redshift | DODGE popup full INK at the crash point · R0017 · 9b67e65
 - [T-0059] P2 | gameplay-engineer | nightwatch | --nwqa-hold QA flag for high-danger thumbs · R0017 · fa85817
