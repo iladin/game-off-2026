@@ -44,6 +44,8 @@ const MAIN_RECT := Rect2(170, 140, 730, 450)
 const LAMP_RECT := Rect2(170, 600, 730, 104)
 const THUMB_RECTS := [Rect2(930, 150, 300, 144), Rect2(930, 310, 300, 144), Rect2(930, 470, 300, 144)]
 const TAP_FLASH := 3
+const SIL_MIN := 60.0  # main-view silhouette height (px) at d 0
+const SIL_MAX := 320.0  # ... and at d 1
 
 
 class Watch extends RefCounted:
@@ -171,6 +173,11 @@ static func danger(s: Watch) -> float:
 		if i != s.watched and s.awake[i]:
 			m = maxf(m, s.d[i])
 	return m
+
+
+## Height in px of the main-view creeper silhouette for a feed at distance d.
+static func silhouette_h(d: float) -> float:
+	return lerpf(SIL_MIN, SIL_MAX, clampf(d, 0.0, 1.0))
 
 
 static func danger_band(dmax: float, prev: int) -> int:

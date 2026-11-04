@@ -297,5 +297,41 @@ func _draw() -> void:
 	W.draw_clock(self, font, self)
 	if band == 2:
 		draw_rect(Rect2(0, 0, 1280, 720), Color(W.BG, 0.25))
+	var wf := watch.watched
+	var sil: bool = not is_finished() and watch.static_t <= 0.0 and jump_t <= 0.0 and watch.d[wf] < R.FLASH_MIN
 	W.draw_main(self, font, self)
+	if sil:
+		_draw_silhouette(wf, watch.awake[wf])
+	_draw_scanline()
 	W.draw_hud(self, font, self)
+
+
+## Frozen creeper silhouette in the watched view: PANEL body, INK eyes, height from R.silhouette_h(d).
+func _draw_silhouette(feed: int, awake: bool) -> void:
+	var rc: Rect2 = R.MAIN_RECT
+	var d: float = watch.d[feed]
+	var h := R.silhouette_h(d)
+	var f := W.foot(rc, d)
+	var bw := 0.45 * h
+	var hr := 0.12 * h
+	var hc := f - Vector2(0, h - hr)
+	var body := Rect2(Vector2(f.x - bw * 0.5, hc.y), Vector2(bw, h - hr))
+	var line := W.a(W.DIM, 0.8)
+	draw_rect(body, W.PANEL)
+	draw_circle(hc, hr, W.PANEL)
+	draw_rect(body, line, false, 2.0)
+	draw_arc(hc, hr, 0.0, TAU, 24, line, 2.0)
+	var ec := W.INK if awake else W.a(W.INK, 0.4)
+	var sep := 0.05 * h
+	var er := maxf(2.5, 0.03 * h)
+	draw_circle(hc + Vector2(-sep, 0), er, ec)
+	draw_circle(hc + Vector2(sep, 0), er, ec)
+
+
+## Slow TRACE scanline sweeping down the main view (inside the 6 px frame).
+func _draw_scanline() -> void:
+	var rc: Rect2 = R.MAIN_RECT.grow(-3.0)
+	var y := rc.position.y + fposmod(anim * 90.0, rc.size.y - 4.0)
+	draw_rect(Rect2(rc.position.x, y - 8.0, rc.size.x, 8.0), W.a(W.TRACE, 0.6))
+	draw_rect(Rect2(rc.position.x, y, rc.size.x, 4.0), W.TRACE)
+	draw_rect(Rect2(rc.position.x, y + 4.0, rc.size.x, 2.0), W.a(W.DIM, 0.35))

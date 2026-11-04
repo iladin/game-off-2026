@@ -89,6 +89,8 @@ func _init() -> void:
 		_t(rc.size.x >= 96 and rc.size.y >= 96, "thumb size")
 	_t(R.danger_band(0.6, 0) == 1 and R.danger_band(0.8, 0) == 2 and R.danger_band(0.72, 2) == 2
 		and R.danger_band(0.68, 2) == 1 and R.danger_band(0.47, 1) == 1 and R.danger_band(0.44, 1) == 0, "danger_band")
+	_t(R.silhouette_h(0.0) == 60.0 and R.silhouette_h(1.0) == 320.0 and absf(R.silhouette_h(0.5) - 190.0) < 1e-3
+		and R.silhouette_h(-1.0) == 60.0 and R.silhouette_h(2.0) == 320.0, "silhouette_h")
 	# thumbnail eyes: inside the cue outline (inner edge 9 px in) and visibly bigger/closer as d grows
 	const W := preload("res://games/nightwatch/watch_draw.gd")
 	for rc: Rect2 in R.THUMB_RECTS:

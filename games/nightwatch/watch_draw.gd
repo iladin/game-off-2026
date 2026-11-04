@@ -142,7 +142,7 @@ static func draw_creeper(ci: CanvasItem, rc: Rect2, z: float, t: float, feed: in
 			var gr := (3.0 + 13.0 * z) * 2.0
 			ci.draw_circle(hp + Vector2(-sep, 0), gr, a(BAD, 0.25))
 			ci.draw_circle(hp + Vector2(sep, 0), gr, a(BAD, 0.25))
-	draw_eyes(ci, rc, z, t, feed, 3.0 + 13.0 * z)
+	# below FLASH_MIN the main view shows the game.gd silhouette (with its own eyes) instead of a lone dash
 
 
 static func draw_static(ci: CanvasItem, rc: Rect2, n: int, w: float, h: float, col: Color) -> void:
