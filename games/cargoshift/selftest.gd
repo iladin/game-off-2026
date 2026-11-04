@@ -93,11 +93,11 @@ func _init() -> void:
 	# bot
 	for sd in range(1, 21):
 		var a := R.sim_round(sd, 0)
-		if a["capsizes"] != 0 or not a["won"] or a["time"] < 44.9 or a["time"] > 45.1 or a["max_tilt"] >= 0.2 \
-				or a["waves"] != 9 or a["shifts"] < 20 or a["score"] < 1500 or a["score"] > 2100:
+		if a["capsizes"] != 0 or not a["won"] or a["time"] < 44.9 or a["time"] > 45.1 or a["max_tilt"] >= 0.3 \
+				or a["waves"] != 9 or a["shifts"] < 20 or a["score"] < 1000 or a["score"] > 2100:
 			f.append("bot d0 seed %d: %s" % [sd, str(a)])
 		var b := R.sim_round(sd, 1)
-		if b["capsizes"] != 0 or not b["won"] or b["max_tilt"] >= 0.3 or b["waves"] != 15:
+		if b["capsizes"] != 0 or not b["won"] or b["max_tilt"] >= 0.35 or b["waves"] != 15:
 			f.append("bot d1 seed %d: %s" % [sd, str(b)])
 		var t6: Array = []
 		var c := R.sim_round(sd, 0, true, t6)
@@ -113,6 +113,53 @@ func _init() -> void:
 		for k in range(1, sorted.size()):
 			if sorted[k] - sorted[k - 1] < gp - 0.0001:
 				f.append("crate gap %s -> %s" % [str(cs), str(sp)])
+	# rogue swell
+	var rr := RandomNumberGenerator.new()
+	rr.seed = 11
+	if R.rogue_next_telegraph(-1.0, rr) + R.ROGUE_WARN < 10.0:
+		f.append("rogue none before 10 s")
+	for _i in 200:
+		var iv := R.rogue_interval(rr)
+		var px := R.rogue_shove_px(rr)
+		if iv < 8.0 or iv > 12.0 or px < 60.0 or px > 120.0:
+			f.append("rogue interval/shove %f %f" % [iv, px])
+		var nt := R.rogue_next_telegraph(20.0, rr)
+		if nt + R.ROGUE_WARN - 20.0 < 8.0 or nt + R.ROGUE_WARN - 20.0 > 12.0:
+			f.append("rogue next telegraph gap")
+	for sd in [1, -1]:
+		for base in [[-0.35, 0.35], [1.0, 1.0], [-1.0, -1.0], [0.6, 0.35, -0.35]]:
+			var rs := R.Ship.new()
+			rs.cargo = PackedFloat32Array(base)
+			rs.home = PackedFloat32Array(base)
+			var pxs := 120.0
+			var side := R.rogue_side(rs.cargo, sd, pxs)
+			var lead0 := -2.0
+			for c in rs.cargo:
+				lead0 = maxf(lead0, float(side) * c)
+			if 1.0 - lead0 < pxs / 264.0 - 1e-4:
+				f.append("rogue side lacks room %s" % str(base))
+	for sd in [1, -1]:
+		var rs2 := R.Ship.new()
+		var rmax := 0.0
+		R.rogue_apply(rs2, sd, 100.0)
+		if absf(rs2.cargo[0] - rs2.home[0]) * 264.0 < 99.0:
+			f.append("rogue shove px")
+		for _i in 90:
+			var tgt := R.bot_dir(rs2, [], 0.0)
+			R.step(rs2, 1.0 / 60.0, tgt, 0.0)
+			rmax = maxf(rmax, absf(rs2.tilt))
+		if rmax < deg_to_rad(6.0) or rmax >= R.CAPSIZE - 0.1:
+			f.append("rogue kick tilt %f deg" % rad_to_deg(rmax))
+	var rd := R.Ship.new()
+	rd.cargo = PackedFloat32Array([0.0, 0.7])
+	for _i in 600:
+		R.rogue_drift(rd, 1.0 / 60.0)
+	if not _near(rd.cargo[0], -0.35) or not _near(rd.cargo[1], 0.35):
+		f.append("rogue drift home")
+	for sd in range(1, 21):
+		var ra := R.sim_round(sd, 0)
+		if ra["rogues"] < 3 or ra["rogues"] > 4:
+			f.append("rogue count seed %d: %s" % [sd, str(ra)])
 	# scoring and input
 	if R.steady_points(0) != 10 or R.steady_points(50) != 30 or R.shift_pitch(100) != 1.5 or R.final_score(1000, 2) != 1300:
 		f.append("scoring")

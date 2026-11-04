@@ -41,6 +41,15 @@ const WAVE_PEAK_RAMP := 0.02
 const WAVE_PEAK_MAX := 1.0
 const WAVE_PEAK_JITTER := 0.85
 const ROUND_TIME := 45.0
+const ROGUE_FIRST_AT := 11.0
+const ROGUE_WARN := 1.0
+const ROGUE_GAP_MIN := 8.0
+const ROGUE_GAP_MAX := 12.0
+const ROGUE_SHOVE_MIN_PX := 60.0
+const ROGUE_SHOVE_MAX_PX := 120.0
+const ROGUE_KICK := 0.36
+const ROGUE_DRIFT := 0.15
+const DECK_PX := 264.0
 const TICK := 1.0
 const GRACE_END := 10.0
 const HINTS_END := 30.0
@@ -180,6 +189,45 @@ static func step(s: Ship, dt: float, dir: int, ext_torque: float) -> int:
 	return ev
 
 
+## Seconds from one rogue shove to the next (8-12).
+static func rogue_interval(rng: RandomNumberGenerator) -> float:
+	return rng.randf_range(ROGUE_GAP_MIN, ROGUE_GAP_MAX)
+
+
+## When the next telegraph starts, given the time of the shove just fired (or -1 for the first).
+static func rogue_next_telegraph(shove_t: float, rng: RandomNumberGenerator) -> float:
+	if shove_t < 0.0:
+		return ROGUE_FIRST_AT
+	return shove_t + rogue_interval(rng) - ROGUE_WARN
+
+
+static func rogue_shove_px(rng: RandomNumberGenerator) -> float:
+	return rng.randf_range(ROGUE_SHOVE_MIN_PX, ROGUE_SHOVE_MAX_PX)
+
+
+## Keep the wanted side (+1/-1) unless the leading crate lacks the room to travel px; then use the other side.
+static func rogue_side(cargo: PackedFloat32Array, want: int, px: float) -> int:
+	var lead := -1.0
+	for c in cargo:
+		lead = maxf(lead, float(want) * c)
+	return want if 1.0 - lead >= px / DECK_PX else -want
+
+
+## The swell shoves every crate px to one side (rails clamp) and kicks the roll that way.
+static func rogue_apply(s: Ship, side: int, px: float) -> void:
+	for i in s.cargo.size():
+		s.cargo[i] = clampf(s.cargo[i] + float(side) * px / DECK_PX, -1.0, 1.0)
+	s.roll_v += float(side) * ROGUE_KICK
+
+
+## While the ship is level enough that crates are not held down by a list, they ease back home.
+static func rogue_drift(s: Ship, dt: float) -> void:
+	if absf(s.tilt) > STICK:
+		return
+	for i in s.cargo.size():
+		s.cargo[i] = move_toward(s.cargo[i], s.home[i], ROGUE_DRIFT * dt)
+
+
 static func rescue(s: Ship) -> void:
 	s.tilt = 0.0
 	s.roll_v = 0.0
@@ -277,8 +325,17 @@ static func sim_round(seed_v: int, difficulty: int, idle: bool = false, tilt6: A
 	var max_tilt := 0.0
 	var shifts := 0
 	var wave_count := 0
+	var rogue_at := rogue_next_telegraph(-1.0, rng)
+	var rogue_hit := -1.0
+	var rogue_dir := 1
+	var rogue_px := 0.0
+	var rogues := 0
 	for _f in 20000:
 		t += dt
+		if rogue_hit < 0.0 and t >= rogue_at:
+			rogue_hit = t + ROGUE_WARN
+			rogue_px = rogue_shove_px(rng)
+			rogue_dir = rogue_side(s.cargo, rng.randi_range(0, 1) * 2 - 1, rogue_px)
 		var r := ramp_time(t, difficulty)
 		if r >= CRATE3_AT and s.cargo.size() == 2:
 			add_crate(s, CRATE3_X * float(rng.randi_range(0, 1) * 2 - 1))
@@ -293,6 +350,12 @@ static func sim_round(seed_v: int, difficulty: int, idle: bool = false, tilt6: A
 			next_wave_t = t + wave_gap(r)
 		var dir := 0 if idle else bot_dir(s, waves, t)
 		var ev := step(s, dt, dir, swell(r, t) + wave_torque(waves, t) + list_torque(t, 1, difficulty))
+		rogue_drift(s, dt)
+		if rogue_hit >= 0.0 and t >= rogue_hit:
+			rogue_apply(s, rogue_dir, rogue_px)
+			rogues += 1
+			rogue_at = rogue_next_telegraph(t, rng)
+			rogue_hit = -1.0
 		if absf(t - 6.0) < dt * 0.5:
 			tilt6.append(s.tilt)
 		if ev & EV_SHIFT:
@@ -308,7 +371,7 @@ static func sim_round(seed_v: int, difficulty: int, idle: bool = false, tilt6: A
 			rescue(s)
 			if lives <= 0:
 				return {"won": false, "time": t, "capsizes": capsizes, "first_capsize": first_capsize,
-					"max_tilt": max_tilt, "score": score, "waves": wave_count, "shifts": shifts}
+					"max_tilt": max_tilt, "score": score, "waves": wave_count, "shifts": shifts, "rogues": rogues}
 		for w: Wave in waves:
 			if not w.done and t >= w.t_hit + WAVE_HIT:
 				w.done = true
@@ -327,9 +390,9 @@ static func sim_round(seed_v: int, difficulty: int, idle: bool = false, tilt6: A
 			tick_max = 0.0
 		if t >= ROUND_TIME:
 			return {"won": true, "time": t, "capsizes": capsizes, "first_capsize": first_capsize,
-				"max_tilt": max_tilt, "score": final_score(score, lives), "waves": wave_count, "shifts": shifts}
+				"max_tilt": max_tilt, "score": final_score(score, lives), "waves": wave_count, "shifts": shifts, "rogues": rogues}
 	return {"won": false, "time": t, "capsizes": capsizes, "first_capsize": first_capsize,
-		"max_tilt": max_tilt, "score": score, "waves": wave_count, "shifts": shifts}
+		"max_tilt": max_tilt, "score": score, "waves": wave_count, "shifts": shifts, "rogues": rogues}
 
 
 ## Sea surface height offset from SEA_Y at world x. Swell is full size at the edges and

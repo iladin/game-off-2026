@@ -61,6 +61,10 @@ var loop_restart_t: float = -1.0
 var capsizes_total: int = 0
 var list_side: int = 1
 var loop_started: bool = false
+var next_rogue_t: float = 0.0
+var rogue_hit_t: float = -1.0
+var rogue_side_v: int = 1
+var rogue_px: float = 0.0
 var font: Font = ThemeDB.fallback_font
 
 
@@ -98,6 +102,8 @@ func begin() -> void:
 	capsizes_total = 0
 	list_side = rng.randi_range(0, 1) * 2 - 1
 	loop_started = false
+	next_rogue_t = R.ROGUE_FIRST_AT
+	rogue_hit_t = -1.0
 	next_wave_t = maxf(0.0, R.WAVES_AT - (R.DIFFICULTY_OFFSET if difficulty >= 1 else 0.0))
 	if R.ramp_time(0.0, difficulty) >= R.CRATE3_AT:
 		R.add_crate(ship, R.CRATE3_X * float(rng.randi_range(0, 1) * 2 - 1))
@@ -183,6 +189,12 @@ func _process(delta: float) -> void:
 		waves.append(w)
 		next_wave_t = t + R.wave_gap(r)
 		Synth.tone(500.0, 1.4, "noise", 0.16, 150.0)
+	if rogue_hit_t < 0.0 and t >= next_rogue_t:
+		rogue_hit_t = t + R.ROGUE_WARN
+		rogue_px = R.rogue_shove_px(rng)
+		rogue_side_v = R.rogue_side(ship.cargo, rng.randi_range(0, 1) * 2 - 1, rogue_px)
+		Synth.tone(180.0, R.ROGUE_WARN, "noise", 0.18, 700.0)
+		Juice.popup(self, D.PIVOT + Vector2(0, -230), "ROGUE SWELL " + ("RIGHT" if rogue_side_v > 0 else "LEFT"), D.ACCENT, 30)
 	if autoplay:
 		dir = R.bot_dir(ship, waves, t)
 	else:
@@ -190,6 +202,14 @@ func _process(delta: float) -> void:
 		if dir == 0 and ptr_down:
 			dir = R.pointer_dir(ptr_pos, ptr_drag, _ballast_pos().x)
 	var ev := R.step(ship, delta, dir, R.swell(r, t) + R.wave_torque(waves, t) + R.list_torque(t, list_side, difficulty))
+	R.rogue_drift(ship, delta)
+	if rogue_hit_t >= 0.0 and t >= rogue_hit_t:
+		R.rogue_apply(ship, rogue_side_v, rogue_px)
+		next_rogue_t = R.rogue_next_telegraph(t, rng)
+		rogue_hit_t = -1.0
+		Synth.tone(75.0, 0.45, "sine", 0.40, 38.0)
+		Juice.shake(SHAKE_HARD)
+		Juice.flash(Color(D.INK, 0.12), 0.1)
 	_on_events(ev, r)
 	if is_finished():
 		return
