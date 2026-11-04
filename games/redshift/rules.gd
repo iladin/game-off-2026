@@ -7,6 +7,8 @@ const EV_DAMAGE := 4
 const EV_CRASH := 8
 const EV_ESCAPE := 16
 const EV_BLOCK := 32
+const EV_POP := 64  # a matching-band shot destroyed an enemy bullet
+const EV_FIRE := 128  # a shooter fired this frame
 
 const BANDS := 3
 const START_BAND := 1
@@ -55,6 +57,17 @@ const HEAVY_AT := 30.0
 const HEAVY_CHANCE := 0.25
 const HEAVY_HP := 3
 const HEAVY_SLOW := 0.8
+const FIRE_AT := 20.0  # r from which formation leaders return fire
+const BULLET_SPEED := 180.0
+const BULLET_R := 6.0
+const BULLET_HIT_R := 4.0  # ship contact radius is SHIP_R * 0.8 + this, a little forgiving
+const BULLET_FIRST := 0.5  # a shooter waits this long after entering the screen
+const BULLET_GAP := 2.4
+const BULLET_FIRE_X := 1120.0  # shooters fire only between here and BULLET_MIN_DX right of the ship
+const BULLET_MIN_DX := 220.0
+const BULLET_MAX := 6
+const BOT_BULLET_T := 1.4  # the bot sidesteps bullets that reach its row within this many seconds
+const BOT_BULLET_DY := 48.0
 const LIVES := 3
 const INVULN := 1.0
 const ROUND_TIME := 50.0
@@ -89,6 +102,14 @@ class Enemy extends RefCounted:
 	var hp: int = 1
 	var heavy: bool = false
 	var radius: float = 26.0
+	var shooter: bool = false
+	var fire_t: float = 0.5
+
+
+class EBullet extends RefCounted:
+	var pos: Vector2 = Vector2.ZERO
+	var vel: Vector2 = Vector2.ZERO
+	var band: int = 1
 
 
 class Shot extends RefCounted:
@@ -110,6 +131,9 @@ class Run extends RefCounted:
 	var hurt: Array[Enemy] = []
 	var crash_pos: Vector2 = Vector2.ZERO
 	var blocked: Array[Vector2] = []
+	var bullets: Array[EBullet] = []
+	var fired: Array[Dictionary] = []  # {pos, band} this frame
+	var pops: Array[Dictionary] = []  # {pos, band} this frame
 
 
 # --- ramp ----------------------------------------------------------------------
@@ -215,6 +239,8 @@ static func step(s: Run, dt: float, r: float, move: float, rng: RandomNumberGene
 	s.kills.clear()
 	s.blocked.clear()
 	s.hurt.clear()
+	s.fired.clear()
+	s.pops.clear()
 	s.invuln = maxf(0.0, s.invuln - dt)
 	s.k += (SPEED_MUL[s.band] - s.k) * minf(1.0, K_EASE * dt)
 	s.ship_y = clampf(s.ship_y + move * MOVE_SPEED * dt, SHIP_Y_MIN, SHIP_Y_MAX)
@@ -271,6 +297,48 @@ static func step(s: Run, dt: float, r: float, move: float, rng: RandomNumberGene
 		else:
 			alive.append(e)
 	s.enemies = alive
+	return ev | _step_bullets(s, dt, r)
+
+
+## Enemy return fire (from r >= FIRE_AT): each shooter fires a slow bullet in its own band colour
+## at the ship's y. A matching-band player shot pops it; otherwise touching the ship is a crash.
+static func _step_bullets(s: Run, dt: float, r: float) -> int:
+	var ev := 0
+	var ship := Vector2(SHIP_X, s.ship_y)
+	for e in s.enemies:
+		if not e.shooter or r < FIRE_AT or e.pos.x > BULLET_FIRE_X:
+			continue
+		e.fire_t -= dt
+		if e.fire_t <= 0.0 and e.pos.x > SHIP_X + BULLET_MIN_DX and s.bullets.size() < BULLET_MAX:
+			e.fire_t = BULLET_GAP
+			var b := EBullet.new()
+			b.pos = e.pos
+			b.band = e.band
+			b.vel = (ship - e.pos).normalized() * BULLET_SPEED
+			s.bullets.append(b)
+			s.fired.append({"pos": e.pos, "band": e.band})
+			ev |= EV_FIRE
+	var keep: Array[EBullet] = []
+	for b in s.bullets:
+		b.pos += b.vel * dt
+		var gone := false
+		for sh in s.shots:
+			if sh.band == b.band and absf(sh.pos.x - b.pos.x) < BULLET_R + 12.0 and absf(sh.pos.y - b.pos.y) < BULLET_R + 4.0:
+				s.pops.append({"pos": b.pos, "band": b.band})
+				ev |= EV_POP
+				gone = true
+				break
+		if gone:
+			continue
+		if s.invuln <= 0.0 and b.pos.distance_to(ship) < BULLET_R + SHIP_R * 0.8 + BULLET_HIT_R:
+			s.streak = 0
+			s.invuln = INVULN
+			s.crash_pos = b.pos
+			ev |= EV_CRASH
+			continue
+		if b.pos.x > ESCAPE_X and b.pos.x < SPAWN_X and b.pos.y > 0.0 and b.pos.y < 720.0:
+			keep.append(b)
+	s.bullets = keep
 	return ev
 
 

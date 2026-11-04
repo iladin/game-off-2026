@@ -95,6 +95,63 @@ func _init() -> void:
 	for i in 120:
 		R.step(s, dt, 0.0, -1.0, rng)
 	_t(s.ship_y == R.SHIP_Y_MIN, "ship clamps")
+	# (g) enemy bullets: fire, hit the ship, get popped by a matching shot, pass a wrong-band shot
+	s = _quiet()
+	var sh_e := _enemy(s, 900.0, 200.0, 0)
+	sh_e.shooter = true
+	var fev := 0
+	for i in 60:
+		fev |= R.step(s, dt, R.FIRE_AT, 0.0, rng)
+	_t((fev & R.EV_FIRE) != 0 and s.bullets.size() == 1 and s.bullets[0].band == 0 and s.bullets[0].vel.x < 0.0, "shooter fires a band-coloured bullet")
+	_t(absf(s.bullets[0].vel.length() - R.BULLET_SPEED) < 0.01, "bullet speed")
+	s = _quiet()
+	var shy := _enemy(s, 900.0, 200.0, 0)
+	shy.shooter = true
+	for i in 120:
+		R.step(s, dt, R.FIRE_AT - 5.0, 0.0, rng)
+	_t(s.bullets.is_empty(), "no return fire before FIRE_AT")
+	s = _quiet()
+	var bu := R.EBullet.new()
+	bu.pos = Vector2(R.SHIP_X + 40.0, s.ship_y)
+	bu.vel = Vector2(-R.BULLET_SPEED, 0.0)
+	bu.band = 0
+	s.bullets.append(bu)
+	var bev := 0
+	for i in 30:
+		bev |= R.step(s, dt, 25.0, 0.0, rng)
+	_t((bev & R.EV_CRASH) != 0 and s.invuln > 0.0 and s.bullets.is_empty(), "bullet hit costs a crash")
+	s = _quiet()
+	s.invuln = 1.0
+	bu = R.EBullet.new()
+	bu.pos = Vector2(R.SHIP_X + 10.0, s.ship_y)
+	bu.vel = Vector2(-R.BULLET_SPEED, 0.0)
+	bu.band = 0
+	s.bullets.append(bu)
+	_t((R.step(s, dt, 25.0, 0.0, rng) & R.EV_CRASH) == 0, "invuln ignores bullet")
+	s = _quiet()
+	s.band = 0
+	bu = R.EBullet.new()
+	bu.pos = Vector2(R.SHIP_X + 300.0, s.ship_y)
+	bu.vel = Vector2(-R.BULLET_SPEED, 0.0)
+	bu.band = 0
+	s.bullets.append(bu)
+	var pops := 0
+	for i in 60:
+		if R.step(s, dt, 25.0, 0.0, rng) & R.EV_POP:
+			pops += 1
+	_t(pops == 1 and s.bullets.is_empty() and s.invuln == 0.0, "matching shot destroys bullet")
+	s = _quiet()
+	s.band = 2
+	bu = R.EBullet.new()
+	bu.pos = Vector2(R.SHIP_X + 300.0, s.ship_y)
+	bu.vel = Vector2(-R.BULLET_SPEED, 0.0)
+	bu.band = 0
+	s.bullets.append(bu)
+	pops = 0
+	for i in 60:
+		if R.step(s, dt, 25.0, 0.0, rng) & R.EV_POP:
+			pops += 1
+	_t(pops == 0, "wrong-band shot passes through bullet")
 	# sims
 	for sd in range(1, 11):
 		for d in 2:

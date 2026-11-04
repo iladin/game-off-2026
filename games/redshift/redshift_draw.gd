@@ -87,6 +87,15 @@ static func draw_ship(ci: CanvasItem, g) -> void:
 		ci.draw_arc(c, 24.0 + 66.0 * p, 0.0, TAU, 40, a(g.fx_col, 1.0 - p), 6.0)
 
 
+static func draw_bullets(ci: CanvasItem, g) -> void:
+	for b in g.run.bullets:
+		var col: Color = BAND_COL[b.band]
+		ci.draw_circle(b.pos, R.BULLET_R * 1.6, a(col, 0.10))
+		ci.draw_circle(b.pos, R.BULLET_R * 1.3, a(col, 0.25))
+		ci.draw_circle(b.pos, R.BULLET_R, col)
+		ci.draw_arc(b.pos, R.BULLET_R, 0.0, TAU, 16, BG, 2.0)
+
+
 static func draw_enemies(ci: CanvasItem, g) -> void:
 	var s: R.Run = g.run
 	var hints: bool = R.hints_on(g.r)

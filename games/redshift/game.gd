@@ -53,6 +53,7 @@ var tick_t: float = 0.0
 var thud_t: float = 0.0
 var band_col_now: Color = D.BAND_COL[1]
 var form_band: int = -1
+var rstart: float = 0.0
 var popup_log: Array = []  # recent popup base positions, for Rules.stagger_pos
 
 
@@ -63,6 +64,8 @@ func begin() -> void:
 	for a in OS.get_cmdline_user_args():  # QA flag: --seed=N overrides
 		if a.begins_with("--seed="):
 			rng.seed = int(a.substr(7))
+		elif a.begins_with("--rstart="):
+			rstart = float(a.substr(9))  # QA: start the round at this many seconds (late-round shots)
 	run = R.Run.new()
 	for l in 3:
 		var arr := PackedVector2Array()
@@ -72,8 +75,8 @@ func begin() -> void:
 	grid_x = 0.0
 	intro = INTRO
 	intro_blip = false
-	t = 0.0
-	r = R.ramp_time(0.0, difficulty)
+	t = rstart
+	r = R.ramp_time(t, difficulty)
 	anim = 0.0
 	score = 0
 	lives = R.LIVES
@@ -207,6 +210,7 @@ func _form_up(before: Array) -> void:
 	var bands := R.spawn_bands(r)
 	if bands.size() > 1 and form_band >= 0:
 		bands = bands.filter(func(b): return b != form_band)
+	lead.shooter = true
 	lead.band = bands[rng.randi() % bands.size()]
 	form_band = lead.band
 	lead.pos.y = clampf(lead.pos.y, R.ENEMY_Y_MIN + FORM_HALF, R.ENEMY_Y_MAX - FORM_HALF)
@@ -343,6 +347,15 @@ func _on_events(ev: int, streak_before: int) -> bool:
 		tick_t = 0.08
 		n_sfx += 1
 		Synth.tone(660.0, 0.04, "square", 0.12)
+	if ev & R.EV_FIRE and n_sfx < 2:
+		n_sfx += 1
+		Synth.tone(300.0, 0.08, "square", 0.1, 180.0)
+	if ev & R.EV_POP:
+		for pp in run.pops:
+			Juice.burst(self, pp.pos, D.BAND_COL[pp.band], 6)
+		if n_sfx < 2:
+			n_sfx += 1
+			Synth.tone(880.0, 0.05, "triangle", 0.12, 1320.0)
 	if ev & R.EV_BLOCK and thud_t <= 0.0 and n_sfx < 2:
 		thud_t = 0.2
 		Synth.tone(180.0, 0.03, "noise", 0.08)
@@ -373,6 +386,7 @@ func _on_events(ev: int, streak_before: int) -> bool:
 func _draw() -> void:
 	D.draw_space(self, self)
 	D.draw_shots(self, self)
+	D.draw_bullets(self, self)
 	D.draw_enemies(self, self)
 	D.draw_ship(self, self)
 	D.draw_pads(self, self)
