@@ -203,11 +203,11 @@ func _on_events(ev: int, r: float) -> bool:
 		squash_kind = SQUASH
 		squash_t = SQUASH_TIME
 		Synth.tone(110.0, 0.05, "triangle", 0.20, 80.0)
-		Juice.burst(self, Vector2(R.PLAYER_X, R.GROUND_Y), D.INK, 6, 120.0)
+		Juice.burst(self, Vector2(R.PLAYER_X, body.y), D.INK, 6, 120.0)
 	if ev & R.EV_ORB:
 		var c := body.orb_cell
 		var pts := R.orb_points(streak)
-		var opos := Vector2(R.PLAYER_X + c * R.CELL + 40.0 - dist, R.GROUND_Y - 40.0)
+		var opos := Vector2(R.PLAYER_X + c * R.CELL + 40.0 - dist, R.surface_y(course, c) - 40.0)
 		Synth.sfx("coin", pow(2.0, mini(streak, 12) / 12.0))
 		streak += 1
 		score += pts
@@ -223,7 +223,7 @@ func _on_events(ev: int, r: float) -> bool:
 		Synth.tone(880.0, 0.12, "sine", 0.22, 1320.0)
 		Juice.shake(SHAKE_SOFT)
 		Juice.popup(self, Vector2(R.PLAYER_X + wc * R.CELL + 40.0 - dist, 180.0), "THROUGH", D.GOOD, 28)
-	if ev & (R.EV_FALL | R.EV_CRASH):
+	if ev & (R.EV_FALL | R.EV_CRASH | R.EV_BUMP):
 		return _fail(ev, r)
 	return false
 
@@ -234,7 +234,9 @@ func _fail(ev: int, r: float) -> bool:
 	fail_tint_t = FAIL_TINT_TIME
 	if R.is_grace(r):
 		var word := "PHASE"
-		if ev & R.EV_FALL:
+		if ev & R.EV_BUMP:
+			word = "JUMP"
+		elif ev & R.EV_FALL:
 			var c0 := R.cell_of(dist)
 			for c in range(c0 - 3, c0 + 1):
 				if R.ground_at(course, c) == 0:

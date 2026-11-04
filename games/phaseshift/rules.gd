@@ -11,6 +11,7 @@ const EV_FALL := 8
 const EV_CRASH := 16
 const EV_WALL := 32
 const EV_ORB := 64
+const EV_BUMP := 128
 
 const CELL := 80.0
 const PLAYER_X := 320.0
@@ -22,7 +23,16 @@ const SPEED_MAX := 440.0
 const GOAL_DIST := 14400.0
 const GOAL_CELLS := 180
 const TOTAL_CELLS := 210
-const START_CELLS := 8
+const START_CELLS := 12
+const HEIGHT_STEP := 80.0
+const MAX_HEIGHT := 2
+const HEIGHT_FROM_CELL := 16
+const HEIGHT_CHANCE := 100
+const POST_CROSS_RUN := 7
+const POST_CROSS_STEP := 3
+const RUN_MIN_AFTER_STEP := 3
+const BOT_STEP_LEAD := 0.22
+const BUMP_TOL := 1.0
 const ZONE_CELLS: Array[int] = [37, 80, 127]
 const RUN_MIN: Array[int] = [6, 6, 5, 6]
 const RUN_MAX: Array[int] = [9, 9, 8, 8]
@@ -72,12 +82,14 @@ class Course extends RefCounted:
 	var ground := PackedByteArray()
 	var wall := PackedByteArray()
 	var orb := PackedByteArray()
+	var height := PackedByteArray()
 
 	func _init() -> void:
 		ground.resize(210)
 		ground.fill(3)
 		wall.resize(210)
 		orb.resize(210)
+		height.resize(210)
 
 
 # --- ramp --------------------------------------------------------------------------
@@ -139,10 +151,28 @@ static func build_course(rng: RandomNumberGenerator, d: int) -> Course:
 	var course := Course.new()
 	var c := START_CELLS
 	var w := 2
+	var h := 0
+	var cross := false
 	while c < GOAL_CELLS:
+		var seg_start := c
+		var stepped := false
+		var post_cross := cross
+		var h_pre := h
+		if c >= HEIGHT_FROM_CELL and rng.randi_range(0, 99) < HEIGHT_CHANCE:
+			if h == 0:
+				h = 1
+			elif h == MAX_HEIGHT:
+				h -= 1
+			else:
+				h += 1 if rng.randi_range(0, 1) == 0 else -1
+			stepped = true
+		cross = false
 		var z := zone_at(c, d)
 		var n := rng.randi_range(RUN_MIN[z], RUN_MAX[z])
 		var a := n / 2
+		if stepped:
+			a = maxi(a, POST_CROSS_RUN if post_cross else RUN_MIN_AFTER_STEP)
+			n = maxi(n, a + 2)
 		var b := n - a
 		var hole := 0
 		if z == 3:
@@ -184,8 +214,13 @@ static func build_course(rng: RandomNumberGenerator, d: int) -> Course:
 					c = _put(course, c, 1, 3)
 				elif kind == 1:
 					c = _put(course, c, rng.randi_range(1, 2), 0)
+					cross = true
 				else:
 					c = _put(course, c, BRIDGE_CELLS[3], 3)
+		for k in range(seg_start, mini(c, TOTAL_CELLS)):
+			course.height[k] = h_pre if (post_cross and stepped and k < seg_start + POST_CROSS_STEP) else h
+	for k in range(c, TOTAL_CELLS):
+		course.height[k] = h
 	return course
 
 
@@ -209,6 +244,17 @@ static func orb_at(course: Course, c: int) -> int:
 	if c < 0 or c >= TOTAL_CELLS:
 		return 0
 	return course.orb[c]
+
+
+static func height_at(course: Course, c: int) -> int:
+	if c < 0 or c >= TOTAL_CELLS:
+		return 0
+	return course.height[c]
+
+
+## Screen y of the floor top of cell c (feet rest here).
+static func surface_y(course: Course, c: int) -> float:
+	return GROUND_Y - HEIGHT_STEP * height_at(course, c)
 
 
 static func has_ground(course: Course, c: int, world: int) -> bool:
@@ -247,7 +293,7 @@ static func fit_world(course: Course, c: int, world: int) -> int:
 
 
 static func rescue(b: Body, course: Course, x: float, v: float) -> void:
-	b.y = GROUND_Y
+	b.y = surface_y(course, cell_of(x))
 	b.vy = 0.0
 	b.grounded = true
 	b.coyote = 0.0
@@ -275,26 +321,38 @@ static func step(b: Body, course: Course, x_prev: float, x: float, dt: float, ju
 	b.jump_buf -= dt
 	var c := cell_of(x)
 	var ok := has_ground(course, c, b.world) or b.invuln > 0.0
+	var surf := surface_y(course, c)
 	if b.grounded:
 		if not ok:
 			b.grounded = false
 			b.coyote = COYOTE
 			b.vy = 0.0
+		elif surf > b.y + BUMP_TOL:
+			b.grounded = false  # walked off a ledge
+			b.vy = 0.0
+		elif surf < b.y - BUMP_TOL:
+			if b.invuln > 0.0:
+				b.y = surf
+			else:
+				ev |= EV_BUMP  # ran into the side of a higher step
 	elif b.coyote > 0.0:
 		if ok:
 			b.grounded = true
 			b.coyote = 0.0
+			b.y = surf
 		else:
 			b.coyote -= dt
 	else:
 		b.vy += GRAVITY * dt
 		var y_prev := b.y
 		b.y += b.vy * dt
-		if b.vy > 0.0 and y_prev <= GROUND_Y and b.y >= GROUND_Y and ok:
-			b.y = GROUND_Y
+		if b.vy > 0.0 and y_prev <= surf and b.y >= surf and ok:
+			b.y = surf
 			b.vy = 0.0
 			b.grounded = true
 			ev |= EV_LAND
+		elif ok and b.invuln <= 0.0 and b.y > surf + BUMP_TOL and has_ground(course, c, b.world):
+			ev |= EV_BUMP
 		elif b.y > FAIL_Y:
 			ev |= EV_FALL
 	if b.invuln <= 0.0:
@@ -304,7 +362,7 @@ static func step(b: Body, course: Course, x_prev: float, x: float, dt: float, ju
 			ev |= EV_CRASH
 		elif wl != 0 and x_prev < wx and x >= wx:
 			ev |= EV_WALL
-	if orb_at(course, c) == b.world and b.y > GROUND_Y - ORB_REACH:
+	if orb_at(course, c) == b.world and b.y > surf - ORB_REACH:
 		ev |= EV_ORB
 		b.orb_cell = c
 	if b.invuln > 0.0:
@@ -333,6 +391,13 @@ static func bot_input(b: Body, course: Course, x: float, v: float) -> int:
 	if need != 0 and need != b.world:
 		f |= 2
 	if b.grounded or b.coyote > 0.0:
+		var cs := cell_of(x)
+		var h0 := height_at(course, cs)
+		for k in range(cs + 1, cs + 4):
+			if height_at(course, k) != h0:
+				if height_at(course, k) > h0 and k * CELL - x <= v * BOT_STEP_LEAD:
+					f |= 1
+				break
 		var h := next_hole(course, x)
 		if h.x >= 0:
 			var to_hole := h.x * CELL - x
@@ -380,7 +445,7 @@ static func sim_bot_round(seed_value: int, d: int) -> Dictionary:
 			score += WALL_PTS
 			streak += 1
 			res.walls += 1
-		if ev & (EV_FALL | EV_CRASH):
+		if ev & (EV_FALL | EV_CRASH | EV_BUMP):
 			res.fails += 1
 			streak = 0
 			lives -= 1

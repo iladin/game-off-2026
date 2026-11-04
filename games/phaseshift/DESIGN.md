@@ -223,9 +223,17 @@ Deterministic, pure, and the same code the selftest simulates: `Rules.bot_input(
 11. **Touch:** a press at (300, 300) phases in that frame (pad lights); a press at (1000, 300) jumps; a press on the HUB or SOUND button does neither.
 
 ## Out of scope
-- Variable jump height, double jump, slopes, raised platforms or multiple floor heights; enemies; anything that scrolls vertically.
+- Variable jump height, double jump, slopes; steps of more than one level; enemies; anything that scrolls vertically.
 - Player-controlled speed, a level select, hand-made levels (the course is generated per round from the zone table).
 - A third world, or phasing that changes anything except which world is solid.
 - Tutorial text, READY screens, per-game menus; any file assets (everything is `_draw()` and Synth).
 - Symbols on screen: no arrow glyphs (the JUMP pad draws a triangle).
 - Gamepad support (a free bonus at most).
+
+## Floor heights (R0019, T-0067)
+- `Course.height` (0-2, bytes) per cell; floor top is `Rules.surface_y(course, c) = GROUND_Y - HEIGHT_STEP * height` (`HEIGHT_STEP = 80`, `MAX_HEIGHT = 2`: GROUND_Y, -80, -160). Holes and bridges take the height of their run.
+- Generation (`build_course`): from cell `HEIGHT_FROM_CELL = 16`, every run steps one level up or down from the previous (`HEIGHT_CHANCE = 100`, clamped 0..2), so a same-height stretch is at most about 14 cells. The step sits at the run start, never beside a hole. A cross gap keeps its height on both sides, so the run after one steps internally instead: its first `POST_CROSS_STEP = 3` cells keep the old height, and the run is at least `POST_CROSS_RUN = 7` cells. A stepped run keeps at least `RUN_MIN_AFTER_STEP = 3` cells before its hole. Every step-up is 80 px: below the 156 px apex and the 160 px cap. Selftest asserts both, plus that every 16-cell window from cell 20 holds at least 2 heights (seeds 1-30, both difficulties).
+- `START_CELLS = 12`: the first obstacle (a world run or a height step) is cell 12, 3.3 s in (selftest: no earlier than 3 s).
+- Physics: `surface_y` replaces `GROUND_Y` in landing, rescue and orb reach. Grounded and the next cell is higher: `EV_BUMP (128)` (side hit; costs a life like a crash, grace shows JUMP). Next cell lower: the body walks off and falls. Invulnerable bodies snap to the surface.
+- Bot: jumps when a step-up edge is within `BOT_STEP_LEAD = 0.22` s ahead.
+- Look: floor columns run from the surface down to y 600; walls run from y 200 to the surface. Orbs sit 40 px above their cell's surface, radius `ORB_R = 14` (28 px across), current-world orbs filled with INK ring and the 1.3x/1.6x glow; other-world orbs are a faint fill plus outline.

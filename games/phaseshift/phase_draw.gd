@@ -18,6 +18,7 @@ const PLAYER_SIZE := 48.0
 const AIR_TURN := PI / 2.0
 const ROW_BOTTOM := 520.0
 const ROW_TWEEN := 0.15
+const ORB_R := 14.0
 
 
 static func world_col(w: int) -> Color:
@@ -77,19 +78,20 @@ static func draw_course(ci: CanvasItem, course: R.Course, dist: float, world: in
 	for c in range(c0, c1 + 1):
 		var sx := R.PLAYER_X + c * R.CELL - dist
 		var g := R.ground_at(course, c)
-		var fr := Rect2(sx + 1, R.GROUND_Y, 78, 40)
+		var top := R.surface_y(course, c)
+		var fr := Rect2(sx + 1, top, 78, R.GROUND_Y + 40.0 - top)
 		if g == 3:
 			ci.draw_rect(fr, PANEL)
 			ci.draw_rect(fr, TRACE, false, 2.0)
-			ci.draw_rect(Rect2(sx + 1, R.GROUND_Y, 78, 4), Color(INK, 0.5))
+			ci.draw_rect(Rect2(sx + 1, top, 78, 4), Color(INK, 0.5))
 		elif g == world:
 			ci.draw_rect(fr, world_col(g))
-			ci.draw_rect(Rect2(sx + 1, R.GROUND_Y, 78, 4), INK)
+			ci.draw_rect(Rect2(sx + 1, top, 78, 4), INK)
 		elif g != 0:
 			ci.draw_rect(fr, Color(world_col(g), 0.35), false, 2.0)
 		var wl := R.wall_at(course, c)
 		if wl != 0:
-			var wr := Rect2(sx + 20, 200, 40, 360)
+			var wr := Rect2(sx + 20, 200, 40, top - 200.0)
 			if wl == world:
 				glow_rect(ci, wr, world_col(wl))
 				ci.draw_rect(wr, world_col(wl))
@@ -100,18 +102,19 @@ static func draw_course(ci: CanvasItem, course: R.Course, dist: float, world: in
 				ci.draw_rect(wr, Color(INK, 0.6))
 		var ob := R.orb_at(course, c)
 		if ob != 0:
-			var oc := Vector2(sx + 40, R.GROUND_Y - 40)
+			var oc := Vector2(sx + 40, top - 40.0)
 			if ob == world:
-				ci.draw_circle(oc, 12 * 1.6, Color(world_col(ob), 0.10))
-				ci.draw_circle(oc, 12 * 1.3, Color(world_col(ob), 0.25))
-				ci.draw_circle(oc, 12, world_col(ob))
-				ci.draw_arc(oc, 12, 0, TAU, 20, INK, 2.0)
+				ci.draw_circle(oc, ORB_R * 1.6, Color(world_col(ob), 0.10))
+				ci.draw_circle(oc, ORB_R * 1.3, Color(world_col(ob), 0.25))
+				ci.draw_circle(oc, ORB_R, world_col(ob))
+				ci.draw_arc(oc, ORB_R, 0, TAU, 24, INK, 2.0)
 			else:
-				ci.draw_arc(oc, 12, 0, TAU, 20, Color(world_col(ob), 0.35), 2.0)
+				ci.draw_circle(oc, ORB_R, Color(world_col(ob), 0.18))
+				ci.draw_arc(oc, ORB_R, 0, TAU, 24, Color(world_col(ob), 0.5), 2.0)
 		if c == hint_c and hint_w != 0:
 			var hr := fr
 			if wl != 0:
-				hr = Rect2(sx + 20, 200, 40, 360)
+				hr = Rect2(sx + 20, 200, 40, top - 200.0)
 			var gr := Rect2(hr.get_center() - hr.size * 0.65, hr.size * 1.3)
 			ci.draw_rect(gr, Color(world_col(hint_w), 0.25))
 	var gx := R.PLAYER_X + R.GOAL_DIST - dist
@@ -125,7 +128,7 @@ static func draw_player(ci: CanvasItem, y: float, world: int, air_frac: float, s
 		old_world: int, t: float) -> void:
 	var col := BAD if tint_t > 0.0 else world_col(world)
 	if invuln > 0.0:
-		ci.draw_line(Vector2(260, R.GROUND_Y), Vector2(380, R.GROUND_Y), Color(INK, 0.5), 4.0)
+		ci.draw_line(Vector2(260, y), Vector2(380, y), Color(INK, 0.5), 4.0)
 		if fmod(invuln, 0.16) < 0.08:
 			return
 	var half := PLAYER_SIZE / 2.0

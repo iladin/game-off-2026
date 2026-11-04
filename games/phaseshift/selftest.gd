@@ -24,6 +24,7 @@ func _init() -> void:
 	_ramp()
 	_courses()
 	_physics()
+	_steps()
 	_bot()
 	_misc()
 	for m in f:
@@ -84,6 +85,31 @@ func _courses() -> void:
 						f.append("hole shape at %d" % i)
 					if c.ground[i - 1] + c.ground[i + n] == 3 and c.ground[i - 1] != 3:
 						cross += 1
+			var levels := {}
+			var apex := R.JUMP_V * R.JUMP_V / (2.0 * R.GRAVITY)
+			for i in range(1, R.TOTAL_CELLS):
+				levels[int(c.height[i])] = true
+				var up := float(int(c.height[i]) - int(c.height[i - 1])) * R.HEIGHT_STEP
+				if up > 160.0 or up > apex:
+					f.append("step-up too high at %d (seed %d)" % [i, s])
+				if up != 0.0 and (c.ground[i] == 0 or c.ground[i - 1] == 0):
+					f.append("step beside a hole at %d" % i)
+			for st in range(20, R.GOAL_CELLS - 16):
+				var lo := 9
+				var hi := -1
+				for k in range(st, st + 16):
+					lo = mini(lo, int(c.height[k]))
+					hi = maxi(hi, int(c.height[k]))
+				if lo == hi:
+					f.append("flat 16-cell window at %d (seed %d d %d)" % [st, s, d])
+					break
+			if levels.size() < 2:
+				f.append("course has one height (seed %d d %d)" % [s, d])
+			var first := 0
+			while first < R.TOTAL_CELLS and c.ground[first] == 3 and c.wall[first] == 0 and c.height[first] == 0:
+				first += 1
+			if d == 0 and float(first) * R.CELL < R.dist_at(3.0, 0):
+				f.append("first obstacle before 3 s (seed %d)" % s)
 			if d == 0 and (holes < 1 or walls < 1):
 				f.append("d0 course lacks hole or wall")
 			if d == 1 and cross < 1:
@@ -166,6 +192,30 @@ func _physics() -> void:
 	R.rescue(b, c, 10.0 * R.CELL - R.INVULN * 300.0, 300.0)
 	if b.world != 2 or b.y != R.GROUND_Y or not b.grounded or b.invuln != R.INVULN:
 		f.append("rescue")
+
+
+func _steps() -> void:
+	var c := _flat(3)
+	for i in range(11, R.TOTAL_CELLS):
+		c.height[i] = 1
+	var b := R.Body.new()
+	var bumped := false
+	for i in 5:
+		bumped = bumped or (R.step(b, c, 870.0 + i * 3.0, 873.0 + i * 3.0, 1.0 / 60.0, false, false) & R.EV_BUMP) != 0
+	if not bumped:
+		f.append("walking into a step-up must bump")
+	b = R.Body.new()
+	var landed := false
+	var x := 790.0
+	for i in 70:
+		var xn := x + 5.0
+		var ev := R.step(b, c, x, xn, 1.0 / 60.0, i == 0 or i == 1, false)
+		x = xn
+		if ev & R.EV_BUMP:
+			f.append("jump at the edge should clear a step")
+		landed = landed or (ev & R.EV_LAND) != 0
+	if not landed or b.y != R.GROUND_Y - R.HEIGHT_STEP:
+		f.append("did not land on the raised floor: %f" % b.y)
 
 
 func _bot() -> void:
