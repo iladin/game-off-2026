@@ -7,6 +7,9 @@ extends RefCounted
 ##   Rules.overflow_unlocked(["a","b","c","d","e"], all)  # true when every bit set and n >= 5
 ##   Rules.newly_cleared(slugs, cleared, seen)            # slugs cleared but not yet in the seen list: play the bit-set ceremony
 ##   Rules.cell_rects(8)                                  # 8 Rect2, 120x150, 16 px gap, centred on x 640
+##   Rules.attract_due(9.0, 3.0, 5)                       # true: idle past the threshold with at least 2 cells
+##   Rules.attract_selected(2, 3, 8)                      # 5: game under the fixed head after 3 shifts from cell 2
+##   Rules.shift_dx(rects, i, base, shifts, p)            # x offset of cell i while the register slides left one cell
 
 const CELL := Vector2(120, 150)
 const GAP := 16.0
@@ -99,3 +102,32 @@ static func demo_entries(n: int) -> Array[Dictionary]:
 			"cleared": i % 2 == 1, "best": 0 if i % 2 == 0 else 1200 + 340 * i,
 		})
 	return out
+
+
+## Attract mode: true once `idle` seconds reach `threshold` and there are at least two cells to rotate.
+static func attract_due(idle: float, threshold: float, cells: int) -> bool:
+	return cells >= 2 and idle >= threshold
+
+
+## Cell index under the fixed head after `shifts` one-cell rotations that began with `base` under it.
+static func attract_selected(base: int, shifts: int, cells: int) -> int:
+	return posmod(base + shifts, cells) if cells > 0 else 0
+
+
+## Slot (0..cells-1) that cell `i` occupies after `shifts` rotations (a circular shift left).
+static func shift_slot(i: int, shifts: int, cells: int) -> int:
+	return posmod(i - shifts, cells) if cells > 0 else 0
+
+
+## X offset from cell i's home rect while the register is shifting: slot after `shifts - 1` rotations eased to
+## the slot after `shifts` by `p` (0..1, already eased). The wrapping cell (leaves slot 0) snaps to the far end.
+static func shift_dx(rects: Array[Rect2], i: int, shifts: int, p: float) -> float:
+	var n := rects.size()
+	if n == 0:
+		return 0.0
+	var to_slot := shift_slot(i, shifts, n)
+	var from_slot := shift_slot(i, shifts - 1, n)
+	if from_slot == 0 and to_slot == n - 1:
+		return rects[to_slot].position.x - rects[i].position.x
+	var x := lerpf(rects[from_slot].position.x, rects[to_slot].position.x, clampf(p, 0.0, 1.0))
+	return x - rects[i].position.x

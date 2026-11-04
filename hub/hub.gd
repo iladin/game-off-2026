@@ -32,6 +32,10 @@ const PLAY_SIZE := Vector2(280, 104) ## at least 96 px tall for touch; sits in t
 const FLIP_DELAY := 0.5
 const FLIP_TIME := 0.25
 const FLIP_GAP := 0.6
+const ATTRACT_IDLE := 8.0 ## seconds without input before the register starts rotating
+const ATTRACT_STEP := 1.2 ## seconds per one-cell rotation in attract mode
+const ATTRACT_SHIFT_TIME := 0.15 ## ease time of one rotation
+const ATTRACT_SFX_VOL := 0.3
 const MUSIC := [57, 0, 64, 0, 60, 0, 64, 67, 57, 0, 64, 0, 62, 0, 60, 59]
 
 var selected: int = 0
@@ -46,6 +50,12 @@ var _head: Rect2 = Rect2()
 var _head_from: Rect2 = Rect2()
 var _head_to: Rect2 = Rect2()
 var _head_t: float = 1.0
+var _idle: float = 0.0 ## seconds since the last input
+var _attract: bool = false
+var _att_base: int = 0 ## cell under the fixed head when attract began
+var _att_shifts: int = 0
+var _swallow: int = -1
+var _att_t: float = 0.0 ## seconds since the last rotation started
 var _flips: Dictionary = {} ## cell index -> t when its flip starts
 var _flip_done: Dictionary = {} ## cell index -> true once the 1 has landed (burst and coin played)
 
@@ -145,11 +155,75 @@ func _tick_flips() -> void:
 func _process(delta: float) -> void:
 	t += delta
 	_tick_flips()
+	_tick_attract(delta)
 	if _head_t < 1.0:
 		_head_t = minf(1.0, _head_t + delta / HEAD_TIME)
 		var k := 1.0 - pow(1.0 - _head_t, 3.0)
 		_head = Rect2(_head_from.position.lerp(_head_to.position, k), _head_to.size)
 	queue_redraw()
+
+
+func _tick_attract(delta: float) -> void:
+	_idle += delta
+	if not _attract:
+		if Rules.attract_due(_idle, ATTRACT_IDLE, _cells()) and _flips.size() == _flip_done_count():
+			_attract = true
+			_att_base = selected
+			_att_shifts = 0
+			_att_t = ATTRACT_STEP # the first rotation fires at once
+		else:
+			return
+	_att_t += delta
+	if _att_t >= ATTRACT_STEP:
+		_att_t -= ATTRACT_STEP
+		_att_shifts += 1
+		selected = Rules.attract_selected(_att_base, _att_shifts, _cells())
+		Synth.tone(220.0, 0.10, "saw", ATTRACT_SFX_VOL, 660.0)
+		_att_anim = 0.0
+	_att_anim = minf(_att_anim + delta, ATTRACT_SHIFT_TIME)
+
+
+var _att_anim: float = ATTRACT_SHIFT_TIME
+
+
+func _flip_done_count() -> int:
+	var c := 0
+	for i in _flips.keys():
+		if _flip_done.has(i):
+			c += 1
+	return c
+
+
+## Any input stops attract mode (the register snaps back, the head eases to the game it showed) and resets the idle timer.
+func _activity() -> void:
+	_idle = 0.0
+	if not _attract:
+		return
+	_attract = false
+	_swallow = Engine.get_process_frames() # the input that stops attract does nothing else
+	if not _rects.is_empty():
+		_head_from = _head
+		_head_to = _rects[selected]
+		_head_t = 0.0
+	if not _demo:
+		Save.set_setting("hub_selected", selected)
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		if event.relative.length() > 0.0:
+			_activity()
+	elif (event is InputEventKey and event.pressed) or event is InputEventMouseButton or event is InputEventScreenTouch \
+			or event is InputEventScreenDrag or event is InputEventJoypadButton:
+		_activity()
+
+
+## X offset of cell i from its home slot (non-zero only in attract mode).
+func _dx(i: int) -> float:
+	if not _attract or _att_shifts == 0:
+		return 0.0
+	var k := clampf(_att_anim / ATTRACT_SHIFT_TIME, 0.0, 1.0)
+	return Rules.shift_dx(_rects, i, _att_shifts, 1.0 - pow(1.0 - k, 3.0))
 
 
 func _select(i: int) -> void:
@@ -170,7 +244,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey or event is InputEventJoypadButton:
 		_touch = false
 	var n := _cells()
-	if n == 0:
+	if n == 0 or _swallow == Engine.get_process_frames():
 		return
 	if event.is_action_pressed("ui_right") or _key(event, KEY_D):
 		_select(posmod(selected + 1, n))
@@ -244,17 +318,18 @@ func _draw() -> void:
 		_footer()
 		return
 	for i in n:
-		_cell(i)
-	_overflow_cell()
+		_cell(i, _dx(i))
+	_overflow_cell(_dx(n))
 	_bus()
 	_read_head()
 	_info()
 	_footer()
 
 
-func _cell(i: int) -> void:
+func _cell(i: int, dx: float = 0.0) -> void:
 	var e := _entries[i]
 	var r := _rects[i]
+	r.position.x += dx
 	var accent: Color = e["accent"]
 	var on: bool = _bit_on(i)
 	var p := _flip_p(i)
@@ -285,8 +360,9 @@ func _cell(i: int) -> void:
 	draw_rect(Rect2(r.position + Vector2(0, r.size.y - 6), Vector2(r.size.x, 6)), accent)
 
 
-func _overflow_cell() -> void:
+func _overflow_cell(dx: float = 0.0) -> void:
 	var r := _rects[_entries.size()]
+	r.position.x += dx
 	var col := GOOD if _overflow_on else DIM
 	draw_rect(r, PANEL)
 	draw_rect(r, GOOD if _overflow_on else DIM, false, 2.0)

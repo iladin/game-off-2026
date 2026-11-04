@@ -41,6 +41,18 @@ func _init() -> void:
 	assert(r9[0].position.x >= 16.0 and r9[8].end.x <= 1264.0)
 	assert(Rules.footer_text(true) == "TAP A BIT   TAP PLAY" and Rules.footer_text(false).contains("ENTER"))
 	assert(Rules.span(1) > 0.0)
+	assert(not Rules.attract_due(7.9, 8.0, 5) and Rules.attract_due(8.0, 8.0, 5) and not Rules.attract_due(99.0, 8.0, 1))
+	assert(Rules.attract_selected(2, 3, 8) == 5 and Rules.attract_selected(6, 4, 8) == 2 and Rules.attract_selected(0, 0, 0) == 0)
+	for sh in 12:
+		var seen_slots := {}
+		for ci in 9:
+			seen_slots[Rules.shift_slot(ci, sh, 9)] = true
+		assert(seen_slots.size() == 9) # a permutation: every slot filled once
+		assert(Rules.shift_slot(Rules.attract_selected(3, sh, 9), sh, 9) == 3) # the same slot stays under the head
+	var r9b := Rules.cell_rects(9)
+	assert(is_equal_approx(Rules.shift_dx(r9b, 4, 1, 0.0), 0.0) and is_equal_approx(Rules.shift_dx(r9b, 4, 1, 1.0), -(120.0 + 16.0)))
+	assert(is_equal_approx(Rules.shift_dx(r9b, 4, 1, 0.5), -68.0))
+	assert(is_equal_approx(Rules.shift_dx(r9b, 0, 1, 0.1), r9b[8].position.x - r9b[0].position.x)) # wrapper snaps to the far end
 	var g := G.new_state(3)
 	assert(g["lives"] == 3 and g["index"] == 0 and not G.is_done(g))
 	G.tick(g, 7.9, 50)
