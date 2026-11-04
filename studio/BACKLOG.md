@@ -2,7 +2,7 @@
 
 Format: `- [T-####] P0|P1|P2 | role | game-or-area | title` with an indented `accept:` line (one or more testable criteria) and optional `source:` (review, INBOX, #issue).
 P0 = broken or blocks the jam · P1 = clearly hurts a jam score · P2 = polish. The Producer keeps Ready sorted P0 → P2, then oldest first.
-Next id: T-0073
+Next id: T-0077
 
 ## Ready
 - [T-0031] P1 | release-manager | uppercase (web) | Chromium reports Left/Right Shift location
@@ -10,18 +10,6 @@ Next id: T-0073
   source: R0011 QA T-0009 (finding 3); R0012 Jam Critic fix 3 (raised to P1; do it with the first web export)
   status R0018: still blocked; Critic fix 3 asks Daniel to test Left/Right Shift once in his own desktop Chrome (see HANDOVER Needs Daniel 1). QA: also guard the arcade.gd:565 screenshot DirAccess path off web.
   status R0014: first web export DONE (build/web, wasm 38 MB, pck 306 KB, no warnings); the browser check is BLOCKED: no Chromium on the machine (cdn.playwright.dev and storage.googleapis.com are 403 by the allowlist), and running an npm-bundled Chromium (@sparticuz/chromium) was denied by the permission system. Needs Daniel (see HANDOVER). Code reading: F/J fallback already works and is labeled.
-- [T-0065] P1 | gameplay-engineer | nightwatch | Fill the main view: creeper silhouette and scanline
-  accept: in play-300 and play-1200 the main (watched) view shows a creeper silhouette >= 60 px tall (PANEL body + INK eyes, height lerp(60,320,d)), frozen while watched, plus a moving TRACE scanline; no lone few-px dash; check.sh nightwatch PASS.
-  source: R0018 Jam Critic fix 2; QA sweep finding 7
-- [T-0066] P1 | gameplay-engineer | cargoshift | Rogue swell shifts the cargo even in good play
-  accept: every 8-12 s a telegraphed rogue swell shoves the crates 60-120 px to one side and kicks the list >= 6 deg, with a thud tone; crates drift back as the list is corrected; crate x differs >= 60 px between two shots ~2 s apart around a swell (or play-300 vs play-1200); the first 10 s cannot cost a life; check.sh cargoshift PASS.
-  source: R0018 Jam Critic fix 4
-- [T-0067] P1 | gameplay-engineer | phaseshift | Ground at three heights; filled orbs
-  accept: runs step between 3 ground heights (GROUND_Y, -80, -160), every step-up clearable by one jump (selftest asserts <= 160 px); play-1200 shows platforms at >= 2 heights; orbs are filled accent circles >= 20 px across with the bible glow; first obstacle no earlier than 3 s; check.sh phaseshift PASS.
-  source: R0018 Jam Critic fix 5; QA sweep finding 4
-- [T-0068] P1 | platform-engineer | hub | Attract mode: register rotates under the read head; touch footer
-  accept: after 8 s idle the register circular-shifts one cell every 1.2 s under the fixed head (0.15 s ease, shift sound vol 0.3), info panel follows, any input stops it; hub shots at frames 600 and 690 show different games under the head; with a touch flag/last input touch the footer names no keys; hub selftest covers the rotate; check.sh hub PASS.
-  source: R0018 Jam Critic fix 6 (VISION section 7 polish item 3)
 - [T-0069] P1 | platform-engineer | shared | HUB/SOUND touch targets and HUB confirm mid-round
   accept: the shared HUB and SOUND buttons have hit areas >= 96 px tall (visual may stay 48 px), or HUB needs a second tap within 1.5 s while a round is live (label shows TAP AGAIN); keyboard path unchanged; check.sh hub and one game PASS.
   source: R0018 QA sweep finding 3 (shared/arcade.gd:605)
@@ -52,10 +40,26 @@ Next id: T-0073
   accept: a pure `R.hold_cap` (or similar) is used by game.gd and a selftest asserts an awake unwatched feed forced to 1.2 ends at 0.92 while the watched feed is untouched; DESIGN.md recipe says "CAM 2 and CAM 3 held at 0.92 (CAM 1 watched)" for frame 1250 without --nwqa; no-flag path unchanged; check.sh nightwatch PASS.
   source: R0017 QA verify T-0059 (findings 1, 3)
 
+- [T-0073] P2 | gameplay-engineer | phaseshift | Skyline follows raised floors; step pacing feel
+  accept: on raised runs (floor top y 480/400) the skyline base sits at or below the floor top in a play-900 shot; HEIGHT_CHANCE reviewed in a playtest note (100 now = a step every run) and either kept or lowered with the 16-cell two-heights selftest still passing; check.sh phaseshift PASS.
+  source: R0019 QA verify T-0067 (P2 findings 1, 2)
+- [T-0074] P2 | platform-engineer | hub | Info panel controls text clear of PLAY; attract keeps the manual pick
+  accept: in a hub shot with Bit Catcher selected the controls line wraps or truncates and no glyph overlaps the PLAY button; when attract mode stops, `hub_selected` stays the player's last manual choice (selftest or code check); check.sh hub PASS.
+  source: R0019 QA verify T-0068 (P2 findings 1, 2)
+- [T-0075] P2 | gameplay-engineer | cargoshift | ROGUE SWELL popup clear of score popups; deterministic swell shot
+  accept: the ROGUE SWELL popup never overlaps "+N"/phase popups or the progress bar (shots 668, 725); a QA flag or seed makes the swell side fixed so a shot at the shove frame and +0.3 s shows >= 60 px crate travel every time; check.sh cargoshift PASS.
+  source: R0019 QA verify T-0066 (P2 findings 1, 2)
+- [T-0076] P2 | gameplay-engineer | nightwatch | Bigger calm silhouette; stray CAM label box
+  accept: the d~0 silhouette reads in play-300 (e.g. SIL_MIN >= 90 or standing in front of the door) and stays frozen while watched; the leftover "CAM n" label/pale box above the main frame in `--nwqa-hold` frame 1250 shots is explained or removed; check.sh nightwatch PASS.
+  source: R0019 QA verify T-0065 (P2 findings 1, 2)
 ## In progress
 
 ## Done
 <!-- - [T-####] ... · R#### · <sha> -->
+- [T-0065] P1 | gameplay-engineer | nightwatch | Night Watch main-view creeper silhouette and TRACE scanline (one follow-up round) · R0019 · 9328133
+- [T-0066] P1 | gameplay-engineer | cargoshift | Cargo Shift rogue swell every 8-12 s · R0019 · 6e03100
+- [T-0067] P1 | gameplay-engineer | phaseshift | Phase Shift ground at three heights; filled orbs (passed after one fix round) · R0019 · 0badec2
+- [T-0068] P1 | platform-engineer | hub | Hub attract mode rotates the register under the head · R0019 · 6a5f9cf
 - [T-0064] P1 | gameplay-engineer | redshift | Formations return fire (band-coloured bullets from r >= 20 s) · R0018 · 48facc0
 - [T-0056] P2 | gameplay-engineer | geargrind | Popup slots clear of the tach (free-y picker; passed after one fix round) · R0017 · ba3f475
 - [T-0058] P2 | gameplay-engineer | redshift | DODGE popup full INK at the crash point · R0017 · 9b67e65
