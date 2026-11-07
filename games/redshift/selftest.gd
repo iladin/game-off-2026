@@ -155,6 +155,30 @@ func _init() -> void:
 		if R.step(s, dt, 25.0, 0.0, rng) & R.EV_POP:
 			pops += 1
 	_t(pops == 0, "wrong-band shot passes through bullet")
+	# (h) BULLET_MAX caps live bullets; off-screen bullets are removed
+	s = _quiet()
+	for i in 9:
+		var cap_e := _enemy(s, 900.0 + 8.0 * i, 130.0 + 40.0 * i, i % 3)
+		cap_e.shooter = true
+	var peak := 0
+	var over := false
+	for i in 100:
+		R.step(s, dt, 25.0, 0.0, rng)
+		peak = maxi(peak, s.bullets.size())
+		over = over or s.bullets.size() > R.BULLET_MAX
+	_t(peak == R.BULLET_MAX and not over, "BULLET_MAX caps live bullets")
+	s = _quiet()
+	for pos in [Vector2(600.0, -20.0), Vector2(600.0, 760.0), Vector2(R.ESCAPE_X - 10.0, 300.0), Vector2(R.SPAWN_X + 30.0, 300.0)]:
+		var off := R.EBullet.new()
+		off.pos = pos
+		off.vel = Vector2.ZERO
+		s.bullets.append(off)
+	var live := R.EBullet.new()
+	live.pos = Vector2(700.0, 120.0)
+	live.vel = Vector2(-R.BULLET_SPEED, 0.0)
+	s.bullets.append(live)
+	R.step(s, dt, 25.0, 0.0, rng)
+	_t(s.bullets.size() == 1 and s.bullets[0] == live, "off-screen bullets are removed")
 	# sims
 	for sd in range(1, 11):
 		for d in 2:

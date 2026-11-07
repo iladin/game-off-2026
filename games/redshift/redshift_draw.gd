@@ -17,6 +17,7 @@ const STAR_ALPHA := [0.25, 0.4, 0.6]
 const STREAK_LEN := 14.0
 const GRID_SPEED := 120.0
 const ENEMY_DRAW := 24.0
+const BULLET_DRAW_R := 9.0  # drawn larger than the hit radius R.BULLET_R
 const HEAVY_SCALE := 1.5
 
 
@@ -90,10 +91,12 @@ static func draw_ship(ci: CanvasItem, g) -> void:
 static func draw_bullets(ci: CanvasItem, g) -> void:
 	for b in g.run.bullets:
 		var col: Color = BAND_COL[b.band]
-		ci.draw_circle(b.pos, R.BULLET_R * 1.6, a(col, 0.10))
-		ci.draw_circle(b.pos, R.BULLET_R * 1.3, a(col, 0.25))
-		ci.draw_circle(b.pos, R.BULLET_R, col)
-		ci.draw_arc(b.pos, R.BULLET_R, 0.0, TAU, 16, BG, 2.0)
+		var br: float = BULLET_DRAW_R
+		ci.draw_circle(b.pos, br * 1.6, a(col, 0.10))
+		ci.draw_circle(b.pos, br * 1.3, a(col, 0.25))
+		ci.draw_circle(b.pos, br, col)
+		ci.draw_arc(b.pos, br, 0.0, TAU, 20, BG, 2.0)
+		ci.draw_arc(b.pos, br + 2.0, 0.0, TAU, 20, INK, 1.5)  # bright ring: reads at a glance on every hue
 
 
 static func draw_enemies(ci: CanvasItem, g) -> void:

@@ -53,7 +53,6 @@ var tick_t: float = 0.0
 var thud_t: float = 0.0
 var band_col_now: Color = D.BAND_COL[1]
 var form_band: int = -1
-var rstart: float = 0.0
 var popup_log: Array = []  # recent popup base positions, for Rules.stagger_pos
 
 
@@ -64,8 +63,6 @@ func begin() -> void:
 	for a in OS.get_cmdline_user_args():  # QA flag: --seed=N overrides
 		if a.begins_with("--seed="):
 			rng.seed = int(a.substr(7))
-		elif a.begins_with("--rstart="):
-			rstart = float(a.substr(9))  # QA: start the round at this many seconds (late-round shots)
 	run = R.Run.new()
 	for l in 3:
 		var arr := PackedVector2Array()
@@ -75,8 +72,8 @@ func begin() -> void:
 	grid_x = 0.0
 	intro = INTRO
 	intro_blip = false
-	t = rstart
-	r = R.ramp_time(t, difficulty)
+	t = 0.0
+	r = R.ramp_time(t + qa_ramp, difficulty)  # qa_ramp: shared --rstart flag, ramp clock only
 	anim = 0.0
 	score = 0
 	lives = R.LIVES
@@ -150,7 +147,7 @@ func _process(dt: float) -> void:
 			_apply_loop()
 		return
 	t += dt
-	r = R.ramp_time(t, difficulty)
+	r = R.ramp_time(t + qa_ramp, difficulty)
 	var move := 0.0
 	if autoplay:
 		think -= dt
