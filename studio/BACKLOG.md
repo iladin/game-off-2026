@@ -10,18 +10,6 @@ Next id: T-0077
   source: R0011 QA T-0009 (finding 3); R0012 Jam Critic fix 3 (raised to P1; do it with the first web export)
   status R0018: still blocked; Critic fix 3 asks Daniel to test Left/Right Shift once in his own desktop Chrome (see HANDOVER Needs Daniel 1). QA: also guard the arcade.gd:565 screenshot DirAccess path off web.
   status R0014: first web export DONE (build/web, wasm 38 MB, pck 306 KB, no warnings); the browser check is BLOCKED: no Chromium on the machine (cdn.playwright.dev and storage.googleapis.com are 403 by the allowlist), and running an npm-bundled Chromium (@sparticuz/chromium) was denied by the permission system. Needs Daniel (see HANDOVER). Code reading: F/J fallback already works and is labeled.
-- [T-0069] P1 | platform-engineer | shared | HUB/SOUND touch targets and HUB confirm mid-round
-  accept: the shared HUB and SOUND buttons have hit areas >= 96 px tall (visual may stay 48 px), or HUB needs a second tap within 1.5 s while a round is live (label shows TAP AGAIN); keyboard path unchanged; check.sh hub and one game PASS.
-  source: R0018 QA sweep finding 3 (shared/arcade.gd:605)
-- [T-0070] P1 | gameplay-engineer | redshift | First 10 s teach BRAKE = red, BOOST = blue
-  accept: before the first non-lime enemy, the matching BRAKE or BOOST pad glows/pulses; hue chips >= 28 px tall; start/play-300 shots show the cue; check.sh redshift PASS.
-  source: R0018 QA sweep finding 2
-- [T-0071] P2 | platform-engineer | shared (gauntlet) | OVERFLOW voice and clear card on the grid
-  accept: each interstitial card plays a Synth.tone rising one step per cleared slot (A minor pentatonic; selftest asserts distinct pitches for game 1 vs 5); the clear card draws BG + TRACE grid, not black; the word OVERFLOW appears once (score line reads SCORE n); check.sh hub PASS.
-  source: R0018 Jam Critic fix 7
-- [T-0072] P2 | gameplay-engineer | redshift | Enemy bullets easier to see; one --rstart flag
-  accept: enemy bullets read at a glance in the ember band (radius ~8-9 or a brighter INK ring) in `--autoplay` frame 1500; Red Shift's own `--rstart` arg is replaced by the shared `MicroGame.qa_ramp` flag (round length unchanged); a selftest asserts BULLET_MAX caps live bullets and off-screen bullets are removed; check.sh redshift PASS.
-  source: R0018 QA verify T-0064 (P2 findings 1, 2, 4)
 - [T-0028] P2 | creative-director | hub+VISION | OVERFLOW teaser cell: bless it or hide it
   accept: VISION.md section 2/7/8 and hub/hub.gd agree: either VISION says a dim locked OVERFLOW cell shows from the start (and section 8's cell-span numbers match 9 cells), or a Platform task is filed to hide the cell until `overflow_unlocked()`.
   source: R0011 QA T-0007 (finding 3), T-0021 (finding 3)
@@ -52,10 +40,23 @@ Next id: T-0077
 - [T-0076] P2 | gameplay-engineer | nightwatch | Bigger calm silhouette; stray CAM label box
   accept: the d~0 silhouette reads in play-300 (e.g. SIL_MIN >= 90 or standing in front of the door) and stays frozen while watched; the leftover "CAM n" label/pale box above the main frame in `--nwqa-hold` frame 1250 shots is explained or removed; check.sh nightwatch PASS.
   source: R0019 QA verify T-0065 (P2 findings 1, 2)
+- [T-0077] P2 | gameplay-engineer | redshift | Teach-pad glow never fully fades; triangle clear of pad word
+  accept: the cued pad's glow alpha stays >= ~35% of peak through the pulse (any frame in the cue window shows a halo); >= 4 px between the pad triangle and the BRAKE/BOOST word; a selftest documents teach_pad(16, 0, -1) == 0 (no BOOST pre-cue when already ember); check.sh redshift PASS.
+  source: R0020 QA verify T-0070 (P2 findings 1-3)
+- [T-0078] P2 | gameplay-engineer | redshift | No draw_rect width warning; --rstart=25 look documented
+  accept: shot/check logs have no `draw_rect() "width" argument has no effect` warning (redshift_draw.gd emblem); DESIGN.md says --rstart=25 is a look-only flag (bot may lose before 50 s) or the bot survives it; 3 consecutive `--autoplay` frame-1500 shot runs show no ObjectDB leak, or it is shown in other games at the same rate.
+  source: R0020 QA verify T-0072 (P2 findings 1-3)
+- [T-0079] P2 | platform-engineer | shared | HUB confirm polish: TAP AGAIN fits; pause clears the arm; corner strips documented
+  accept: a shot 2 frames after a first mid-round HUB tap shows TAP AGAIN fully inside the button; pressing P while armed resets the label to "< HUB"; each game's DESIGN.md (or a shared note) confirms the top-corner 96 px HUD strips (x 8-144, 1106-1272) hold no primary action; check.sh hub PASS.
+  source: R0020 QA verify T-0069 (P2 findings 2-4)
 ## In progress
 
 ## Done
 <!-- - [T-####] ... · R#### · <sha> -->
+- [T-0070] P1 | gameplay-engineer | redshift | Red Shift pads teach BRAKE = ember, BOOST = blue; 32 px hue chips · R0020 · b7d8544
+- [T-0069] P1 | platform-engineer | shared | 96 px HUB/SOUND hit areas; HUB TAP AGAIN confirm mid-round · R0020 · d132218
+- [T-0072] P2 | gameplay-engineer | redshift | Ringed r9 enemy bullets; --rstart via MicroGame.qa_ramp; bullet selftests · R0020 · cf37379
+- [T-0071] P2 | platform-engineer | shared (gauntlet) | OVERFLOW rising pentatonic card tones; clear card on BG + TRACE grid · R0020 · 83cc819
 - [T-0065] P1 | gameplay-engineer | nightwatch | Night Watch main-view creeper silhouette and TRACE scanline (one follow-up round) · R0019 · 9328133
 - [T-0066] P1 | gameplay-engineer | cargoshift | Cargo Shift rogue swell every 8-12 s · R0019 · 6e03100
 - [T-0067] P1 | gameplay-engineer | phaseshift | Phase Shift ground at three heights; filled orbs (passed after one fix round) · R0019 · 0badec2
