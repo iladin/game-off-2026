@@ -34,6 +34,7 @@ const RESULT_INPUT_DELAY := 0.6
 const AUTOPLAY_RESTART_DELAY := 0.5
 const TOUR_SECONDS := 3.0
 const GauntletRules := preload("res://shared/gauntlet_rules.gd")
+const UiRules := preload("res://shared/ui_rules.gd")
 const OVERFLOW_SLUG := "overflow"
 const GOOD := Color("ffd34d")
 const CARD_TIME := 0.6 ## gauntlet interstitial card
@@ -53,6 +54,8 @@ var _game: MicroGame = null
 var _fade: ColorRect
 var _hud: CanvasLayer
 var _back_btn: Button
+var _back_hit: Button
+var _hub_armed_at := -1.0 ## UiRules.hub_tap state (real seconds), -1 = not armed
 var _mute_btn: Button
 var _pause_overlay: Control
 var _result: Control
@@ -166,6 +169,8 @@ func info_for(slug: String) -> Dictionary:
 # --- Scene switching -------------------------------------------------------------
 
 func to_hub() -> void:
+	_hub_armed_at = -1.0
+	_back_btn.text = "< HUB"
 	current_slug = ""
 	_gauntlet = {}
 	_gauntlet_game = null
@@ -527,6 +532,42 @@ func _set_paused(on: bool) -> void:
 	_pause_overlay.visible = on
 
 
+## Invisible 96 px tall touch target over a 48 px visual button (visible only when the button is).
+func _make_hit_area(vis: Button) -> Button:
+	var h := Button.new()
+	h.flat = true
+	h.focus_mode = Control.FOCUS_NONE
+	h.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	h.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+	h.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+	h.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	h.position = Vector2(vis.position.x - 8.0, 0.0)
+	h.size = Vector2(vis.size.x + 16.0, UiRules.HIT_HEIGHT)
+	h.custom_minimum_size = h.size
+	_hud.add_child(h)
+	vis.visibility_changed.connect(func() -> void: h.visible = vis.visible)
+	h.visible = vis.visible
+	return h
+
+
+func _now_s() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+
+## HUB button: mid-round needs a second tap within UiRules.CONFIRM_WINDOW.
+func _on_hub_pressed() -> void:
+	var live := current_slug != "" and not _result.visible
+	var step := UiRules.hub_tap(live, _now_s(), _hub_armed_at)
+	_hub_armed_at = step["armed_at"]
+	if step["go"]:
+		_back_btn.text = "< HUB"
+		Synth.sfx("back")
+		to_hub()
+	else:
+		_back_btn.text = "TAP AGAIN"
+		Synth.sfx("select")
+
+
 func _toggle_mute() -> void:
 	Synth.set_muted(not Synth.muted)
 	_mute_btn.text = "SOUND OFF" if Synth.muted else "SOUND ON"
@@ -547,6 +588,9 @@ func _result_age() -> float:
 # --- Screenshots -----------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	if _hub_armed_at >= 0.0 and not UiRules.hub_armed(_now_s(), _hub_armed_at):
+		_hub_armed_at = -1.0
+		_back_btn.text = "< HUB"
 	_gauntlet_tick(delta)
 	_card_tick(delta)
 	_reg_tick(delta)
@@ -578,9 +622,9 @@ func _build_ui() -> void:
 	_back_btn = _make_button("< HUB", Vector2(120, 48))
 	_back_btn.position = Vector2(16, 12)
 	_hud.add_child(_back_btn)
-	_back_btn.pressed.connect(func() -> void:
-		Synth.sfx("back")
-		to_hub())
+	_back_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE # the 96 px hit button below takes the taps
+	_back_hit = _make_hit_area(_back_btn)
+	_back_hit.pressed.connect(_on_hub_pressed)
 	_back_btn.visible = false
 	_gauntlet_label = _make_label("", 28, GOOD)
 	# Left gutter (x 0-165, y 74+) is outside every game's HUD (art bible: HUD lives in x 170-1090).
@@ -605,7 +649,8 @@ func _build_ui() -> void:
 	_mute_btn = _make_button("SOUND ON", Vector2(150, 48))
 	_mute_btn.position = Vector2(1280 - 16 - 150, 12)
 	_hud.add_child(_mute_btn)
-	_mute_btn.pressed.connect(_toggle_mute)
+	_mute_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_make_hit_area(_mute_btn).pressed.connect(_toggle_mute)
 	_mute_btn.text = "SOUND OFF" if Synth.muted else "SOUND ON"
 
 	_pause_overlay = _make_panel(Color(0, 0, 0, 0.7))
