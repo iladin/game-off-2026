@@ -60,6 +60,7 @@ var _mute_btn: Button
 var _pause_overlay: Control
 var _result: Control
 var _result_title: Label
+var _result_grid: Control ## BG + TRACE grid backdrop of the OVERFLOW clear card
 var _result_score: Label
 var _result_best: Label
 var _result_shown_at: float = -1.0
@@ -335,6 +336,7 @@ func _card_start(i: int) -> void:
 	_card_flipped = false
 	_card.visible = true
 	_card.queue_redraw()
+	Synth.tone(Synth.midi_to_hz(GauntletRules.card_midi(i)), 0.22, "triangle", 0.22)
 
 
 func _draw_card() -> void:
@@ -660,6 +662,12 @@ func _build_ui() -> void:
 	_pause_overlay.visible = false
 
 	_result = _make_panel(Color(0, 0, 0, 0.72))
+	_result_grid = Control.new()
+	_result_grid.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_result_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_result_grid.visible = false
+	_result_grid.draw.connect(_draw_result_grid)
+	_result.add_child(_result_grid)
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_CENTER)
 	box.custom_minimum_size = Vector2(600, 340)
@@ -709,13 +717,22 @@ func _build_ui() -> void:
 	fade_layer.add_child(_fade)
 
 
+func _draw_result_grid() -> void:
+	for x in range(0, 1281, 40):
+		_result_grid.draw_line(Vector2(x, 0), Vector2(x, 720), Color("1e2738"), 1.0)
+	for y in range(0, 721, 40):
+		_result_grid.draw_line(Vector2(0, y), Vector2(1280, y), Color("1e2738"), 1.0)
+
+
 func _show_result(slug: String, score: int, won: bool, new_best: bool) -> void:
 	var info := info_for(slug)
 	if slug == OVERFLOW_SLUG:
 		info = {"title": "OVERFLOW", "accent": GOOD}
 	_result_title.text = ("CLEAR!" if won else "GAME OVER")
 	_result_title.add_theme_color_override("font_color", info["accent"])
-	_result_score.text = "%s:  %d" % [info["title"], score]
+	_result_score.text = ("SCORE  %d" % score) if slug == OVERFLOW_SLUG else "%s:  %d" % [info["title"], score]
+	(_result as ColorRect).color = Color("0b0e14") if slug == OVERFLOW_SLUG else Color(0, 0, 0, 0.72)
+	_result_grid.visible = slug == OVERFLOW_SLUG
 	_result_best.text = "NEW BEST!" if new_best else "Best %d" % Save.best(slug)
 	_reg.visible = slug == OVERFLOW_SLUG
 	_reg_t = 0.0 if slug == OVERFLOW_SLUG else -1.0

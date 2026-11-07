@@ -6,6 +6,10 @@ const G := preload("res://shared/gauntlet_rules.gd")
 
 
 func _init() -> void:
+	assert(G.card_midi(0) == 57 and G.card_midi(1) == 60 and G.card_midi(4) == 67 and G.card_midi(5) == 69)
+	assert(G.card_midi(0) != G.card_midi(4))
+	for i in 12:
+		assert(G.card_midi(i + 1) > G.card_midi(i))
 	assert(Rules.bits(["a", "b", "c"], {"b": true}) == "010")
 	assert(Rules.bits([], {}) == "")
 	assert(Rules.count_set("10110") == 3)

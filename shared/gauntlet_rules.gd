@@ -95,3 +95,14 @@ static func fit_size(font: Font, word: String, base: int, max_w: float = CARD_MA
 	while sz > CARD_MIN_SIZE and font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x > max_w:
 		sz -= 2
 	return maxi(sz, mini(CARD_MIN_SIZE, base))
+
+
+const PENTATONIC := [0, 3, 5, 7, 10] ## A minor pentatonic, semitones above ROOT_MIDI
+const ROOT_MIDI := 57 ## A3
+
+
+## MIDI note for the interstitial card of cleared slot `i` (0-based): one scale step up per slot, wrapping up an octave
+## every 5. G.card_midi(0) == 57 (A3), G.card_midi(4) == 67, G.card_midi(5) == 69. Arcade plays Synth.tone(Synth.midi_to_hz(n), ...).
+static func card_midi(i: int) -> int:
+	var k := maxi(i, 0)
+	return ROOT_MIDI + 12 * (k / PENTATONIC.size()) + int(PENTATONIC[k % PENTATONIC.size()])
