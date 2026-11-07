@@ -39,6 +39,9 @@ func _init() -> void:
 	_t(R.phase_name(5) == "" and R.phase_name(15) == "RED" and R.phase_name(25) == "BLUE" and R.phase_name(35) == "HEAVY", "phase_name")
 	_t(R.is_grace(9.9) and not R.is_grace(10.0), "grace")
 	_t(R.hints_on(29.9) and not R.hints_on(30.0), "hints")
+	_t(R.teach_pad(0.0, 1, -1) == -1 and R.teach_pad(2.0, 1, -1) == -1 and R.teach_pad(5.5, 1, -1) == -1 and R.teach_pad(9.9, 1, 1) == -1, "teach: BRAKE cued before first ember enemy")
+	_t(R.teach_pad(10.5, 1, -1) == 0 and R.teach_pad(14.9, 1, -1) == 0 and R.teach_pad(16.0, 1, -1) == 1 and R.teach_pad(12.0, 1, 2) == 1 and R.teach_pad(12.0, 1, 0) == -1 and R.teach_pad(12.0, 1, 1) == 0, "teach: BOOST before blue, target-based after")
+	_t(R.teach_pad(35.0, 1, 2) == 0, "teach: off with hints")
 	# (a) shift
 	var s := R.Run.new()
 	_t(R.shift(s, -1) == R.EV_SHIFT and s.band == 0 and R.shift(s, -1) == 0, "shift down and end stop")

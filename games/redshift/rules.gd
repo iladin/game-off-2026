@@ -73,6 +73,8 @@ const INVULN := 1.0
 const ROUND_TIME := 50.0
 const GRACE_END := 10.0
 const HINTS_END := 30.0
+const TEACH_LEAD := 10.0  # BRAKE pulses from the start until the first ember enemy (RED_AT)
+const TEACH_LEAD_BLUE := 5.0  # BOOST pulses this long before the first blue enemy
 const DIFFICULTY_OFFSET := 30.0
 const KILL_PTS := 10
 const STREAK_PTS := 2
@@ -169,6 +171,21 @@ static func phase_name(r: float) -> String:
 
 static func hints_on(r: float) -> bool:
 	return r < HINTS_END
+
+
+## Which pad to cue (-1 BRAKE, 1 BOOST, 0 none). Teaching only, no rule change: with hints on, the
+## pad toward the nearest enemy's band (tgt_band, -1 if none); else, from TEACH_LEAD s before the
+## first ember (RED_AT) / blue (BLUE_AT) enemy, the pad that makes the ship that colour.
+static func teach_pad(r: float, band: int, tgt_band: int) -> int:
+	if not hints_on(r):
+		return 0
+	if tgt_band >= 0 and tgt_band != band:
+		return signi(tgt_band - band)
+	if band == 1 and r >= RED_AT - TEACH_LEAD and r < RED_AT:
+		return -1
+	if band == 1 and r >= BLUE_AT - TEACH_LEAD_BLUE and r < BLUE_AT:
+		return 1
+	return 0
 
 
 static func is_grace(r: float) -> bool:

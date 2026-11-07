@@ -137,9 +137,7 @@ static func draw_pads(ci: CanvasItem, g) -> void:
 	var s: R.Run = g.run
 	ci.draw_line(Vector2(0, 594), Vector2(1280, 594), TRACE, 2.0)
 	var tgt := Bot.target(s)
-	var hint := 0
-	if tgt != null and R.hints_on(g.r):
-		hint = signi(tgt.band - s.band)
+	var hint := R.teach_pad(g.r, s.band, tgt.band if tgt != null else -1)
 	for i in 2:
 		var rc: Rect2 = R.BRAKE_RECT if i == 0 else R.BOOST_RECT
 		var nb := s.band - 1 if i == 0 else s.band + 1
@@ -157,7 +155,12 @@ static func draw_pads(ci: CanvasItem, g) -> void:
 		ci.draw_rect(Rect2(rc.position, Vector2(rc.size.x, 6)), col)
 		var cx := rc.get_center().x
 		var d := -1.0 if i == 0 else 1.0
-		ci.draw_colored_polygon(PackedVector2Array([Vector2(cx + d * 14, 650), Vector2(cx - d * 14, 636), Vector2(cx - d * 14, 664)]), col)
+		var chip := Rect2(cx - 40, 608, 80, 32)  # hue chip: the colour and shape you become
+		ci.draw_rect(chip, a(col, 0.85 if want else 0.5))
+		ci.draw_rect(chip, col, false, 2.0)
+		if not dead:
+			emblem(ci, nb, chip.get_center(), 9.0, BG, 2.0, true)
+		ci.draw_colored_polygon(PackedVector2Array([Vector2(cx + d * 14, 660), Vector2(cx - d * 14, 647), Vector2(cx - d * 14, 673)]), col)
 		text(ci, "BRAKE" if i == 0 else "BOOST", Vector2(rc.position.x, 692), 28, INK, rc.size.x, HORIZONTAL_ALIGNMENT_CENTER)
 
 
